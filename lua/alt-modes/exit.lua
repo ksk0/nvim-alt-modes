@@ -35,8 +35,10 @@ local restore_buffer_keymaps = function(state)
       noremap = kmap.noremap,
     }
 
-    -- print(vim.inspect(kmap))
-    -- print("Restoring: " .. kmap.lhs)
+    if not kmap.rhs then
+      kmap.rhs = kmap.callback
+    end
+
     set_keymap(kmap.mode, kmap.lhs, kmap.rhs, options)
   end
 end
