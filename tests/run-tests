@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+
+clear
+
+test_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+nvim \
+  --headless \
+  --noplugin \
+  -u "${test_dir}/mininit.lua" \
+  -c "lua require('plenary.test_harness').test_directory('${test_dir}/', {minimal_init='${test_dir}/mininit.lua', sequential=false})"
+
+echo

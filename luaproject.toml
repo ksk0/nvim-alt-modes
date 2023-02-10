@@ -1,0 +1,8 @@
+[tool.runner]
+  lib = "lua"
+  plugin = true
+  init   = "plugin/.init.lua"
+
+[tool.tests]
+  dir = "tests"
+  sequential = true

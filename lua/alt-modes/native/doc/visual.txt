@@ -1,0 +1,98 @@
+# ============================================================================
+# 3. Visual mode
+# ============================================================================
+#
+# Most commands in Visual mode are the same as in Normal mode.  The ones listed
+# here are those that are different.
+#
+# tag                      Command             note action in Visual mode
+# ----------------------------------------------------------------------------
+# v_CTRL-\_CTRL-N          CTRL-\ CTRL-N            stop Visual mode
+# v_CTRL-\_CTRL-G          CTRL-\ CTRL-G            go to Normal mode
+# v_CTRL-A                 CTRL-A                2  add N to number in highlighted text
+# v_CTRL-C                 CTRL-C                   stop Visual mode
+# v_CTRL-G                 CTRL-G                   toggle between Visual mode and Select mode
+# v_<BS>                   <BS>                  2  Select mode: delete highlighted area
+# v_CTRL-H                 CTRL-H                2  same as <BS>
+# v_CTRL-O                 CTRL-O                   switch from Select to Visual mode for one command
+# v_CTRL-V                 CTRL-V                   make Visual mode blockwise or stop Visual mode
+# v_CTRL-X                 CTRL-X                2  subtract N from number in highlighted text
+# v_<Esc>                  <Esc>                    stop Visual mode
+# v_CTRL-]                 CTRL-]                   jump to highlighted tag
+# v_!                      !{filter}             2  filter the highlighted lines through the external command {filter}
+# v_:                      :                        start a command-line with the highlighted lines as a range
+# v_<                      <                     2  shift the highlighted lines one 'shiftwidth' left
+# v_=                      =                     2  filter the highlighted lines through the
+#                                                   external program given with the 'equalprg'
+#                                                   option
+# v_>                      >                     2  shift the highlighted lines one 'shiftwidth' right
+# v_b_A                    A                     2  block mode: append same text in all lines, after the highlighted area
+# v_C                      C                     2  delete the highlighted lines and start insert
+# v_D                      D                     2  delete the highlighted lines
+# v_b_I                    I                     2  block mode: insert same text in all lines, before the highlighted area
+# v_J                      J                     2  join the highlighted lines
+# v_K                      K                        run 'keywordprg' on the highlighted area
+# v_O                      O                        move horizontally to other corner of area
+# v_P                      P                     -  replace highlighted area with register
+#                                                   contents; registers are unchanged
+#                          Q                        does not start Ex mode
+# v_R                      R                     2  delete the highlighted lines and start insert
+# v_S                      S                     2  delete the highlighted lines and start insert
+# v_U                      U                     2  make highlighted area uppercase
+# v_V                      V                        make Visual mode linewise or stop Visual mode
+# v_X                      X                     2  delete the highlighted lines
+# v_Y                      Y                        yank the highlighted lines
+# v_aquote                 A"                       extend highlighted area with a double quoted string
+# v_a'                     A'                       extend highlighted area with a single quoted string
+# v_a(                     A(                       same as ab
+# v_a)                     A)                       same as ab
+# v_a<                     A<                       extend highlighted area with a <> block
+# v_a>                     A>                       same as a<
+# v_aB                     AB                       extend highlighted area with a {} block
+# v_aW                     AW                       extend highlighted area with "a WORD"
+# v_a[                     A[                       extend highlighted area with a [] block
+# v_a]                     A]                       same as a[
+# v_a`                     A`                       extend highlighted area with a backtick quoted string
+# v_ab                     Ab                       extend highlighted area with a () block
+# v_ap                     Ap                       extend highlighted area with a paragraph
+# v_as                     As                       extend highlighted area with a sentence
+# v_at                     At                       extend highlighted area with a tag block
+# v_aw                     Aw                       extend highlighted area with "a word"
+# v_a{                     A{                       same as aB
+# v_a}                     A}                       same as aB
+# v_c                      C                     2  delete highlighted area and start insert
+# v_d                      D                     2  delete highlighted area
+# v_g_CTRL-A               G CTRL-A              2  add N to number in highlighted text
+# v_g_CTRL-X               G CTRL-X              2  subtract N from number in highlighted text
+# v_gJ                     GJ                    2  join the highlighted lines without inserting spaces
+# v_gq                     Gq                    2  format the highlighted lines
+# v_gv                     Gv                       exchange current and previous highlighted area
+# v_iquote                 I"                       extend highlighted area with a double quoted string (without quotes)
+# v_i'                     I'                       extend highlighted area with a single quoted string (without quotes)
+# v_i(                     I(                       same as ib
+# v_i)                     I)                       same as ib
+# v_i<                     I<                       extend highlighted area with inner <> block
+# v_i>                     I>                       same as i<
+# v_iB                     IB                       extend highlighted area with inner {} block
+# v_iW                     IW                       extend highlighted area with "inner WORD"
+# v_i[                     I[                       extend highlighted area with inner [] block
+# v_i]                     I]                       same as i[
+# v_i`                     I`                       extend highlighted area with a backtick quoted string (without the backticks)
+# v_ib                     Ib                       extend highlighted area with inner () block
+# v_ip                     Ip                       extend highlighted area with inner paragraph
+# v_is                     Is                       extend highlighted area with inner sentence
+# v_it                     It                       extend highlighted area with inner tag block
+# v_iw                     Iw                       extend highlighted area with "inner word"
+# v_i{                     I{                       same as iB
+# v_i}                     I}                       same as iB
+# v_o                      O                        move cursor to other corner of area
+# v_p                      P                        replace highlighted area with register contents; deleted text in unnamed register
+# v_r                      R                     2  replace highlighted area with a character
+# v_s                      S                     2  delete highlighted area and start insert
+# v_u                      U                     2  make highlighted area lowercase
+# v_v                      V                        make Visual mode charwise or stop Visual mode
+# v_x                      X                     2  delete the highlighted area
+# v_y                      Y                        yank the highlighted area
+# v_~                      ~                     2  swap case for the highlighted area
+#
+#
