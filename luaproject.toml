@@ -1,7 +1,7 @@
 [tool.runner]
-  lib = "lua"
+  lib = ["lua", "tests/lib"]
   plugin = true
-  init   = "plugin/.init.lua"
+  init   = "plugin/.init"
 
 [tool.tests]
   dir = "tests"
