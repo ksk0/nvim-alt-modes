@@ -1,10 +1,27 @@
 local M = {}
-local extend_list = vim.fn.extend
+local extend = vim.fn.extend
 local flatten = vim.fn.flatten
+
+-- vim.notify("Loading lists")
 
 -- ============================================================================
 -- list functions
 --
+local normalize = function(list)
+  local i=1
+  local R = {}
+  local keys = vim.tbl_keys(list)
+
+  table.sort(keys)
+
+  for _,k in ipairs(keys) do
+    R[i] = list[k]
+    i = i + 1
+  end
+
+  return R
+end
+
 local count_members = function(list)
   local count = {}
   for _,v in ipairs(list) do
@@ -17,8 +34,11 @@ end
 M.union = function(list_a, ...)
   local union = {}
   local result = {}
+  local var_lists = normalize({...})
 
-  for _,v in ipairs(flatten(extend_list(list_a, {...}))) do
+  list_a = list_a or {}
+
+  for _,v in ipairs(flatten(extend(list_a, var_lists))) do
     if not union[v] then
       table.insert(result, v)
       union[v] = true
@@ -29,7 +49,9 @@ M.union = function(list_a, ...)
 end
 
 M.intersection = function(list_a, ...)
-  local count = count_members(extend_list(list_a, M.union(...)))
+  list_a = list_a or {}
+
+  local count = count_members(extend(list_a, M.union(...)))
   local result = {}
 
   for _,v in ipairs(list_a) do
@@ -42,8 +64,10 @@ M.intersection = function(list_a, ...)
 end
 
 M.sub = function(list_a, ...)
+  list_a = list_a or {}
+
   local section = M.intersection(list_a, M.union(...))
-  local count = count_members(extend_list(list_a, section))
+  local count = count_members(extend(list_a, section))
   local result = {}
 
   for _,v in ipairs(list_a) do
