@@ -1,0 +1,4 @@
+vim.cmd [[
+  nnoremap <silent> <C-k> :lua require("alt-modes-test")()<CR>
+  nnoremap <silent> <leader>K :lua require("alt-modes-test.reload")()<CR>
+]]
