@@ -1,5 +1,6 @@
 local list = require("alt-modes.core.list")
-local fn = vim.fn
+local fn   = vim.fn
+local map  = vim.tbl_map
 
 -- ===============================================
 -- valid and defaulte values
@@ -21,9 +22,6 @@ local valid_config_options = {
   'timeout',
 
   'overlay',
-
-  -- 'shadow',
-  -- 'keep',
   'options',
   'keymaps',
 }
@@ -32,6 +30,16 @@ local valid_config_options = {
 -- ===============================================
 -- helper functions
 --
+local max = function(item_list)
+  if not item_list then
+    return
+  end
+
+  local sorted = vim.deepcopy(item_list)
+  table.sort(sorted)
+  return sorted[1]
+end
+
 local function flatten_keymap_tree(keymap_tree)
   if type (keymap_tree) == "boolean" then
     return keymap_tree
@@ -112,6 +120,28 @@ local check_options = function (options)
   return true, options
 end
 
+local check_keymaps = function(altmode)
+  local keymaps = altmode.keymaps
+
+  if keymaps == nil then
+    error(altmode.name .. ' (keymaps definition): no keymaps given', 0)
+  end
+
+  if type(keymaps) ~= 'table' then
+    error(altmode.name .. ' (keymaps definition): "keymaps" is keymap definition or list of former', 0)
+  end
+
+  if not vim.tbl_islist(keymaps) then
+    keymaps = {keymaps}
+  end
+
+  if vim.tbl_isempty(keymaps) then
+    error(altmode.name .. ' (keymaps definition): no keymaps given', 0)
+  end
+
+  altmode.keymaps = keymaps
+end
+
 
 -- ===============================================
 -- parsing functions
@@ -135,6 +165,49 @@ local parse_native_mode = function(altmode)
 
   if not is_ok then
     error(altmode.name .. " (mode definition): " .. error_msg, 0)
+  end
+end
+
+local parse_timeout = function (altmode)
+  local timeout = altmode.timeout
+
+  if timeout == nil then
+    return
+  end
+
+  if type(timeout) ~= "number" then
+    error(altmode.name .. " (timeout): timeout must be a number!",0)
+  end
+end
+
+
+-- ===============================================
+-- overlay parsing functions
+--
+local parse_overlay_defaults = function (altmode)
+  altmode.overlay.default = altmode.overlay.default or {}
+
+  local defaults = altmode.overlay.default
+  local default_scopes = vim.tbl_keys(defaults)
+  local invalides = list.sub(default_scopes, {"native", "global", "buffer"})
+
+  if #invalides ~= 0 then
+    local invalid_list = '"' .. fn.join(invalides, '", "') .. '"'
+    local msg = " (overlay defaults): Invalid scope(s): " .. invalid_list
+    error(altmode.name .. msg, 0)
+  end
+
+  for _,scope in ipairs({"native", "global", "buffer"}) do
+    local default = defaults[scope]
+
+    if not default or default == 'shadow' then
+      defaults[scope] = false
+    elseif default == 'keep' then
+      defaults[scope] = true
+    else
+      local msg = " (overlay defaults): Invalid scope value: " .. tostring(default)
+      error(altmode.name .. msg, 0)
+    end
   end
 end
 
@@ -182,33 +255,6 @@ local parse_overlay_mode = function(altmode, mode)
   end
 
   altmode.overlay[mode] = overlay
-end
-
-local parse_overlay_defaults = function (altmode)
-  altmode.overlay.default = altmode.overlay.default or {}
-
-  local defaults = altmode.overlay.default
-  local default_scopes = vim.tbl_keys(defaults)
-  local invalides = list.sub(default_scopes, {"native", "global", "buffer"})
-
-  if #invalides ~= 0 then
-    local invalid_list = '"' .. fn.join(invalides, '", "') .. '"'
-    local msg = " (overlay defaults): Invalid scope(s): " .. invalid_list
-    error(altmode.name .. msg, 0)
-  end
-
-  for _,scope in ipairs({"native", "global", "buffer"}) do
-    local default = defaults[scope]
-
-    if not default or default == 'shadow' then
-      defaults[scope] = false
-    elseif default == 'keep' then
-      defaults[scope] = true
-    else
-      local msg = " (overlay defaults): Invalid scope value: " .. tostring(default)
-      error(altmode.name .. msg, 0)
-    end
-  end
 end
 
 local parse_overlay_shadows = function (altmode)
@@ -263,6 +309,10 @@ local parse_overlay = function(altmode)
   overlay.default = nil
 end
 
+
+-- ===============================================
+-- keymap parsing functions
+--
 local parse_keymap_options = function (altmode)
   local is_ok, options = check_options(altmode.options)
 
@@ -292,7 +342,15 @@ local parse_rhs = function(rhs)
   return rhs
 end
 
-local parse_keymap = function (keymap, altmode)
+local function parse_keymap(altmode, keymap)
+  if vim.tbl_islist(keymap) then
+    for _,kmap in ipairs(keymap) do
+      parse_keymap(altmode, kmap)
+    end
+
+    return
+  end
+
   keymap.mode = keymap.mode or altmode.native_mode
 
   local mode_ok, error_msg = check_native_mode(keymap.mode)
@@ -368,54 +426,29 @@ local parse_keymap = function (keymap, altmode)
 end
 
 local parse_keymaps = function (altmode)
+  check_keymaps(altmode)
+
   local keymaps = altmode.keymaps
 
-  if keymaps == nil then
-    error(altmode.name .. ' (keymaps definition): no keymaps given', 0)
-  end
-
-  if type(keymaps) ~= 'table' then
-    error(altmode.name .. ' (keymaps definition): "keymaps" is keymap definition or list of former', 0)
-  end
-
-  if not vim.tbl_islist(keymaps) then
-    keymaps = {keymaps}
-  end
-
-  if vim.tbl_isempty(keymaps) then
-    error(altmode.name .. ' (keymaps definition): no keymaps given', 0)
-  end
-
-
   for _,keymap in pairs(keymaps) do
-    keymap = parse_keymap(keymap, altmode)
+    parse_keymap(altmode, keymap)
   end
 
-  table.sort(keymaps,
-    function(km1, km2)
-      return km1.lhs < km2.lhs
+  altmode._keymaps = fn.flatten(keymaps)
+
+  table.sort(altmode._keymaps,
+    function(km_1, km_2)
+      return km_1.lhs < km_2.lhs
     end
   )
-
-  altmode.keymaps = keymaps
 end
 
-local parse_timeout = function (altmode)
-  local timeout = altmode.timeout
-
-  if timeout == nil then
-    return
-  end
-
-  if type(timeout) ~= "number" then
-    error(altmode.name .. " (timeout): timeout must be a number!",0)
-  end
-end
-
-local parse_help = function(altmode)
+local parse_help_keymap = function(altmode)
   if altmode.help == "" then
     return
   end
+
+  altmode.help = altmode.help or 'g?'
 
   local help_keymap = {
     mode = altmode.native_mode,
@@ -424,10 +457,10 @@ local parse_help = function(altmode)
     options = default_keymap_options,
   }
 
-  table.insert(altmode.keymaps, help_keymap)
+  table.insert(altmode._keymaps, help_keymap)
 end
 
-local parse_exit = function(altmode)
+local parse_exit_keymap = function(altmode)
   if altmode.exit == "" then
     return
   end
@@ -445,7 +478,64 @@ local parse_exit = function(altmode)
     }
   }
 
-  table.insert(altmode.keymaps, exit_keymap)
+  table.insert(altmode._keymaps, exit_keymap)
+end
+
+
+-- ===============================================
+-- help parsing functions
+--
+local function parse_keymaps_help (altmode, keymap)
+  if not keymap then
+    local raw_help = parse_keymaps_help(altmode, altmode.keymaps)
+    local last_group = {}
+    local help = {}
+
+    for _,h in ipairs(raw_help) do
+      if vim.tbl_islist(h) then
+        table.insert(help, h)
+      else
+        table.insert(last_group, h)
+      end
+    end
+
+    if #last_group ~= 0 then
+      table.insert(help, last_group)
+    end
+
+    local lhs_list = map(function(kmap) return kmap.lhs end, altmode._keymaps)
+
+    altmode._help = help
+    -- altmode._lhs_len = max(map(string.len, lhs_list)) or 0
+
+    return
+  end
+
+
+  if vim.tbl_islist(keymap) then
+    local kmaps = {}
+
+    for _,kmap in ipairs(keymap) do
+      table.insert(kmaps, parse_keymaps_help(altmode, kmap))
+    end
+
+    if #kmaps == 0 then return nil end
+
+    return kmaps
+
+  else
+    local desc = keymap.options.desc
+
+    if not desc then
+      return nil
+    else
+      return {
+        desc = desc,
+        lhs  = keymap.lhs,
+      }
+    end
+
+  end
 end
 
 
@@ -454,28 +544,33 @@ end
 -- check for redefined altmaps !!! (twice defined)
 --
 local add_altmode = function (name, altmode)
-  altmode.exit = altmode.exit or 'q'
-  altmode.help = altmode.help or 'g?'
-
   altmode.name = altmode.name or name
   altmode.name = altmode.name:upper()
 
-  parse_config_options(altmode)
+  parse_config_options(altmode)       -- check validity of config options
 
-  parse_native_mode(altmode)
-  parse_overlay(altmode)
-  parse_keymap_options(altmode)
-  parse_keymaps(altmode)
-  parse_timeout(altmode)
-  parse_help(altmode)
-  parse_exit(altmode)
+  parse_native_mode(altmode)          -- check native mode
+  parse_overlay(altmode)              -- check overlay config
+  parse_keymap_options(altmode)       -- check default options for keymaps
+  parse_keymaps(altmode)              -- parse keymap list
+  parse_keymaps_help(altmode)         -- create_help_structure
+
+  -- for i,h in ipairs(altmode._help) do
+  --   print("Part (" .. tostring(i) .. "):" .. vim.inspect(h))
+  -- end
+  --
+  -- print("Keymaps: " .. vim.inspect(altmode._keymaps))
+
+  parse_timeout(altmode)              -- check timeout value
+  parse_help_keymap(altmode)          -- parse help keymap
+  parse_exit_keymap(altmode)          -- parse exit keymap
 end
 
 
 -- ===============================================
 -- module function
 --
-local F = function (self, name, altmode)
+local add = function (self, name, altmode)
   local ok,error_msg = pcall(add_altmode, name, altmode)
 
   if not ok then
@@ -485,4 +580,4 @@ local F = function (self, name, altmode)
   self._altmodes[name] = altmode
 end
 
-return F
+return add

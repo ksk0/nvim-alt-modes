@@ -29,24 +29,28 @@ modes.testing = {
 
   keymaps = {
     {
-      lhs  = 'g?',
-      rhs  = ':lua require("alt-modes"):help()<CR>',
-      desc = 'Show help',
-    },
-    -- {
-    --   lhs  = 'h',
-    --   rhs  = ':lua require("alt-modes"):help()<CR>',
-    --   desc = 'Show help',
-    -- },
-    {
-      lhs  = 'o',
-      rhs  = ':nmap <buffer><CR>',
-      desc = 'Notify that "o" key has been pressed',
+      {
+        lhs  = 'g?',
+        rhs  = ':lua require("alt-modes"):help()<CR>',
+        desc = 'Show help',
+      },
+      {
+        lhs  = 'h',
+        rhs  = ':lua require("alt-modes"):help()<CR>',
+        desc = 'Show help',
+      },
     },
     {
-      lhs  = 'g',
-      rhs  = 'lua vim.notify("Key \\"g\\" was pressed")',
-      desc = 'Notify that "Z" key has been pressed',
+      {
+        lhs  = 'o',
+        rhs  = ':nmap <buffer><CR>',
+        -- desc = 'Notify that "o" key has been pressed',
+      },
+      {
+        lhs  = 'g',
+        rhs  = 'lua vim.notify("Key \\"g\\" was pressed")',
+        desc = 'Notify that "Z" key has been pressed',
+      },
     },
     {
       lhs  = 'J',
@@ -59,9 +63,11 @@ modes.testing = {
       desc = 'Notify that "L" key has been pressed',
     },
     {
-      lhs  = 'P',
-      rhs  = '<cmd>lua vim.notify("Key \\"P\\" was pressed")<CR>',
-      desc = 'Notify that "P" key has been pressed',
+      {
+        lhs  = 'P',
+        rhs  = '<cmd>lua vim.notify("Key \\"P\\" was pressed")<CR>',
+        desc = 'Notify that "P" key has been pressed',
+      },
     },
 
     {
