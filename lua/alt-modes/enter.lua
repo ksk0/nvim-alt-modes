@@ -154,14 +154,13 @@ end
 -- Main keymap collection functions
 --
 local collect_alt_keymaps = function(alt_state)
-  local altmode = alt_state.altmode
-  local mode = altmode.native_mode
+  local mode = alt_state.mode
   local keymaps = {}
 
   for _,keymap in ipairs(
     vim.tbl_filter(
       function(km) return km.mode == mode end,
-      altmode.keymaps
+      alt_state.keymaps
     )
   )do
     if type(keymap.lhs) == 'table' then
@@ -180,13 +179,13 @@ local collect_kept_keymaps = function(alt_state)
   local K = {}
 
   for _,scope in ipairs({"buffer", "global", "native"}) do
-    local altmode = alt_state.altmode[scope]
+    local overlay = alt_state.overlay[scope]
     local current = alt_state.current[scope]
 
-    local shadows = collect_shadows(current, altmode)
-    local keeps   = collect_keeps(current, altmode)
+    local shadows = collect_shadows(current, overlay)
+    local keeps   = collect_keeps(current, overlay)
 
-    local default  = altmode.default
+    local default  = overlay.default
 
     local kept = {}
 
@@ -266,18 +265,17 @@ local init_alt_state = function(self, name, buffer)
     error(msg,3)
   end
 
-  if not altmode then
-    return
-  end
-
   buffer = buffer or api.nvim_get_current_buf()
 
   local alt_state = {}
 
-  alt_state.name = altmode.name
-  alt_state.mode = altmode.native_mode
-  alt_state.buffer = buffer
-  alt_state.altmode = altmode
+  alt_state.buffer  = buffer
+  alt_state.name    = altmode._name
+  alt_state.mode    = altmode._mode       -- OK
+  alt_state.timeout = altmode._timeout    -- OK
+  alt_state.keymaps = altmode._keymaps    -- OK
+  alt_state.overlay = altmode._overlay    -- OK
+  alt_state.help    = altmode._help
 
   self._states[buffer] = self._states[buffer] or {}
   table.insert(self._states[buffer], alt_state)
@@ -375,7 +373,7 @@ local get_keymap_actions = function (alt_state)
   -- these have been ingnored in shadow/
   -- keep)
   --
-  for _,kmap in ipairs(alt_state.altmode.keymaps) do
+  for _,kmap in ipairs(alt_state.keymaps) do
     table.insert(actions, {action = 'set', kmap = kmap})
   end
 
@@ -400,7 +398,7 @@ end
 local set_timeout = function(alt_state)
   alt_state.timeout = vim.opt.timeoutlen._value
 
-  local timeout = alt_state.altmode.timeout
+  local timeout = alt_state.timeout
 
   if not timeout then
     return

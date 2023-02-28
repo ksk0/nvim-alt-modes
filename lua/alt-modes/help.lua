@@ -286,7 +286,7 @@ local construct_help_text = function(state)
   local keymaps  = filter(valid_keymap, state.altmode.keymaps)
   local lhs_list = map(function(kmap) return kmap.lhs end, keymaps)
 
-  table.sort(keymaps, order_by_lhs)
+  table.sort(keymaps, order_by_description)
 
   local format = {}
 

@@ -3,7 +3,7 @@
 local M = {}
 
 M._altmodes  = {}   -- alternative modes are stored here
-M._states = {}       -- list of buffer states
+M._states = {}      -- list of buffer states (active alt modes)
 
 M.get = function (self, name)
   return self._altmodes[name]
