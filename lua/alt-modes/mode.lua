@@ -10,17 +10,15 @@ local mode = function(self, buffer)
     return
   end
 
-  local state  = states[#states]
+  local alt_state  = states[#states]
 
   -- check if buffer exists
   --
   local buffer_info = fn.getbufinfo(buffer)
 
   if #buffer_info ~= 0 then
-    return state.name
+    return alt_state.name
   end
-
-  return
 end
 
 return mode

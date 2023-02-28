@@ -146,6 +146,11 @@ end
 -- ===============================================
 -- parsing functions
 --
+local parse_name = function (altmode, name)
+  altmode.name = altmode.name or name
+  altmode.name = altmode.name:upper()
+end
+
 local parse_config_options = function(altmode)
   local params = vim.tbl_keys(altmode)
   local invalides = list.sub(params, valid_config_options)
@@ -158,10 +163,10 @@ local parse_config_options = function(altmode)
 end
 
 local parse_native_mode = function(altmode)
-  altmode.native_mode = altmode.mode or 'n'
+  altmode._mode = altmode.mode or 'n'
   altmode.mode = nil
 
-  local is_ok, error_msg = check_native_mode(altmode.native_mode)
+  local is_ok, error_msg = check_native_mode(altmode._mode)
 
   if not is_ok then
     error(altmode.name .. " (mode definition): " .. error_msg, 0)
@@ -169,13 +174,14 @@ local parse_native_mode = function(altmode)
 end
 
 local parse_timeout = function (altmode)
-  local timeout = altmode.timeout
+  altmode._timeout = altmode.timeout
+  altmode.timeout  = nil
 
-  if timeout == nil then
+  if altmode._timeout == nil then
     return
   end
 
-  if type(timeout) ~= "number" then
+  if type(altmode._timeout) ~= "number" then
     error(altmode.name .. " (timeout): timeout must be a number!",0)
   end
 end
@@ -296,17 +302,17 @@ local parse_overlay = function(altmode)
 
   -- ======================================
   -- Group shadow/keeps by scope
+  local _overlay = {}
   for _,scope in ipairs({"native", "global", "buffer"}) do
-    altmode[scope] = {
+    _overlay[scope] = {
       default = overlay.default[scope],
       shadow  = overlay.shadow[scope],
       keep    = overlay.keep[scope],
     }
   end
 
-  overlay.shadow = nil
-  overlay.keep = nil
-  overlay.default = nil
+  altmode._overlay = _overlay
+  altmode.overlay  = nil
 end
 
 
@@ -351,7 +357,7 @@ local function parse_keymap(altmode, keymap)
     return
   end
 
-  keymap.mode = keymap.mode or altmode.native_mode
+  keymap.mode = keymap.mode or altmode._mode
 
   local mode_ok, error_msg = check_native_mode(keymap.mode)
 
@@ -451,7 +457,7 @@ local parse_help_keymap = function(altmode)
   altmode.help = altmode.help or 'g?'
 
   local help_keymap = {
-    mode = altmode.native_mode,
+    mode = altmode._mode,
     lhs = altmode.help,
     rhs = ':lua require("alt-modes"):help()<CR>',
     options = default_keymap_options,
@@ -466,7 +472,7 @@ local parse_exit_keymap = function(altmode)
   end
 
   local exit_keymap = {
-    mode = altmode.native_mode,
+    mode = altmode._mode,
     lhs = altmode.exit,
     rhs = ':lua require("alt-modes"):exit()<CR>',
     options = {
@@ -544,8 +550,7 @@ end
 -- check for redefined altmaps !!! (twice defined)
 --
 local add_altmode = function (name, altmode)
-  altmode.name = altmode.name or name
-  altmode.name = altmode.name:upper()
+  parse_name(altmode, name)
 
   parse_config_options(altmode)       -- check validity of config options
 
@@ -564,6 +569,13 @@ local add_altmode = function (name, altmode)
   parse_timeout(altmode)              -- check timeout value
   parse_help_keymap(altmode)          -- parse help keymap
   parse_exit_keymap(altmode)          -- parse exit keymap
+
+  altmode._name   = altmode.name
+  altmode.name    = nil
+  altmode.exit    = nil
+  altmode.help    = nil
+  altmode.options = nil
+  altmode.keymaps = nil
 end
 
 

@@ -163,9 +163,9 @@ local nmap_test = function()
 end
 
 local run_test = function ()
-  list_test()
+  -- list_test()
   -- local_test()
-  do return end
+  -- do return end
   -- arg_test("jedan", "dva", {"tri", "cetiri"})
   -- nmap_test()
   -- do return end
@@ -176,6 +176,8 @@ local run_test = function ()
   local M = require("alt-modes")
 
   M:add('testing', modes.testing)
+
+  -- print(vim.inspect(M._altmodes['testing']))
   M:enter('testing')
 end
 

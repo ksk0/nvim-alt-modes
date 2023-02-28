@@ -34,7 +34,7 @@ local test_mode = {}
 -- to pass some tests (other than keymap tests)
 -- keymap has to be deeined
 --
-test_mode.keymaps = {
+local test_keymaps = {
   mode = 'v',
   lhs  = 'Z',
   rhs  = 'lua vim.notify("Key \"J\" was pressed")',
@@ -50,22 +50,24 @@ test_mode.keymaps = {
 --
 -- do return end
 local reset_test_mode = function()
-  test_mode.buffer = nil
-  test_mode.global = nil
-  test_mode.native = nil
-  test_mode.native_mode = nil
-  test_mode.timeout = nil
+  test_mode.name = test_mode._name
+  test_mode.keymaps = test_keymaps
 
-  test_mode.overlay = test_mode.overlay or {}
+  test_mode._name = nil
+  test_mode._mode = nil
+  test_mode._help = nil
+  test_mode._keymaps = nil
+  test_mode._timeout = nil
+  test_mode._overlay = nil
 
-  for key,_ in pairs(test_mode.overlay) do
-    test_mode.overlay[key] = nil
-  end
+  test_mode.overlay = {}
 end
 
 
 print()
 describe("Loading module:", function ()
+  before_each(reset_test_mode)
+
   it("mode [OK]", function ()
     assert.no.errors(function() M = require("alt-modes") end)
   end)
@@ -76,6 +78,8 @@ describe("Loading module:", function ()
 end)
 
 describe("Config options:", function ()
+  before_each(reset_test_mode)
+
   it("Invalid config option ('foo') [ERORR]", function ()
     test_mode.foo = 'true'
 
@@ -88,7 +92,10 @@ describe("Config options:", function ()
   test_mode.foo = nil
 end)
 
+
 describe("Native mode:", function ()
+  before_each(reset_test_mode)
+
   it("Invalid native mode given ('k') [ERORR]", function ()
     test_mode.mode = 'k'
 
@@ -135,16 +142,13 @@ describe("Overlay:", function ()
     assert.is_not_true(ok)
     assert.not_equal(nil, msg:match('TEST %(overlay%): Invalid option.*"foo"'))
   end)
-
-  test_mode.overlay = {}
 end)
 
 describe("Overlay defaults:", function ()
   before_each(reset_test_mode)
-  local overlay = test_mode.overlay
 
   it("Invalid scope given ('foo') [ERORR]", function ()
-    overlay.default = {foo = true}
+    test_mode.overlay.default = {foo = true}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -153,7 +157,7 @@ describe("Overlay defaults:", function ()
   end)
 
   it("Invalid scope value ('bar') [ERORR]", function ()
-    overlay.default = {buffer = 'bar'}
+    test_mode.overlay.default = {buffer = 'bar'}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -162,25 +166,22 @@ describe("Overlay defaults:", function ()
   end)
 
   it("Default scope value given ('shadow') [OK]", function ()
-    overlay.default = nil
+    test_mode.overlay.default = nil
 
     assert.no.errors(function() M:add('test', test_mode) end)
-    assert.is_not_true(test_mode.buffer.default)
-    assert.is_not_true(test_mode.global.default)
-    assert.is_not_true(test_mode.native.default)
+    assert.is_not_true(test_mode._overlay.buffer.default)
+    assert.is_not_true(test_mode._overlay.global.default)
+    assert.is_not_true(test_mode._overlay.native.default)
   end)
-
-  test_mode.overlay = {}
 end)
 
 
 print()
 describe("Shadow:", function ()
   before_each(reset_test_mode)
-  local overlay = test_mode.overlay
 
   it("Invalid shadow level given ('foo') [ERORR]", function ()
-    overlay.shadow = 'foo'
+    test_mode.overlay.shadow = 'foo'
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -189,7 +190,7 @@ describe("Shadow:", function ()
   end)
 
   it("Invalid shadow content (1) - cant be number [ERORR]", function ()
-    overlay.shadow = {buffer = 2}
+    test_mode.overlay.shadow = {buffer = 2}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -198,7 +199,7 @@ describe("Shadow:", function ()
   end)
 
   it("Invalid shadow content (2) - empty list [ERORR]", function ()
-    overlay.shadow = {buffer = {}}
+    test_mode.overlay.shadow = {buffer = {}}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -207,73 +208,74 @@ describe("Shadow:", function ()
   end)
 
   it("Valid shadow content (1) - boolean [OK]", function ()
-    overlay.shadow = {buffer = true}
+    test_mode.overlay.shadow = {buffer = true}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
   it("Valid shadow content (2) - string [OK]", function ()
-    overlay.shadow = {buffer = "<C-X>"}
+    test_mode.overlay.shadow = {buffer = "<C-X>"}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
   it("Valid shadow content (3) - list [OK]", function ()
-    overlay.shadow = {buffer = {"X", "Y"}}
+    test_mode.overlay.shadow = {buffer = {"X", "Y"}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
   it("Valid shadow content (4) - nested list [OK]", function ()
-    overlay.shadow = {buffer = {"X", "Y", {"a", "b"}}}
+    test_mode.overlay.shadow = {buffer = {"X", "Y", {"a", "b"}}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
   it("Valid shadow content (5) - nested list [OK]", function ()
-    overlay.shadow = {buffer = {"X", "Y", {jedab = "a", pet = "b"}}}
+    test_mode.overlay.shadow = {buffer = {"X", "Y", {jedab = "a", pet = "b"}}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
   it("Valid shadow content (6) - nested list [OK]", function ()
-    overlay.shadow = {buffer = {"X", "Y", something = {jedab = "a", pet = "b"}}}
+    test_mode.overlay.shadow = {buffer = {"X", "Y", something = {jedab = "a", pet = "b"}}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
     -- print (vim.inspect(M:get('test')))
   end)
 
   it("Valid shadow content (7) - native.normal [OK]", function ()
-    overlay.shadow = {native = maps.normal}
+    test_mode.overlay.shadow = {native = maps.normal}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
   it("Valid shadow content (8) - multiple native [OK]", function ()
-    overlay.shadow = {
-      native = {
-        maps.normal.tabs,
-        maps.normal.windows,
+    test_mode.overlay = {
+      shadow = {
+        native = {
+          maps.normal.tabs,
+          maps.normal.windows,
+        }
       }
     }
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  -- print(vim.inspect(M:get('test')))
-
-  overlay.shadow  = nil
 end)
 
 
 print()
 describe("Keep:", function ()
   before_each(reset_test_mode)
-  local overlay = test_mode.overlay
+  local overlay
 
   it("Conflicting shadow & keep for buffer (true, true) [ERORR]", function ()
-    overlay.shadow = {buffer = true}
-    overlay.keep   = {buffer = true}
+    test_mode.overlay = {
+      shadow = {buffer = true},
+      keep   = {buffer = true},
+    }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -282,8 +284,10 @@ describe("Keep:", function ()
   end)
 
   it("Conflicting shadow & keep for global (true, true) [ERORR]", function ()
-    overlay.shadow = {global = true}
-    overlay.keep   = {global = true}
+    test_mode.overlay = {
+      shadow = {global = true},
+      keep   = {global = true},
+    }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -292,8 +296,10 @@ describe("Keep:", function ()
   end)
 
   it("Conflicting shadow & keep for native (true, true) [ERORR]", function ()
-    overlay.shadow = {native = true}
-    overlay.keep   = {native = true}
+    test_mode.overlay = {
+      shadow = {native = true},
+      keep   = {native = true},
+    }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -302,7 +308,9 @@ describe("Keep:", function ()
   end)
 
   it("Conflicting shadow & keep for native (false, nil) [ERORR]", function ()
-    overlay.shadow = {native = false}
+    test_mode.overlay = {
+      shadow = {native = false},
+    }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -311,8 +319,10 @@ describe("Keep:", function ()
   end)
 
   it("Conflicting shadow & keep for native (true, nil) [ERORR]", function ()
-    overlay.default = {native = 'keep'}
-    overlay.shadow  = {native = true}
+    test_mode.overlay = {
+      default = {native = 'keep'},
+      shadow  = {native = true},
+    }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -320,9 +330,6 @@ describe("Keep:", function ()
     assert.not_equal(nil, msg:match("can't simultaniously keep and shadow native keymaps"))
   end)
 end)
-
-test_mode.overlay = nil
-
 
 print()
 describe("Keymap options:", function ()
@@ -357,6 +364,7 @@ describe("Keymap list:", function ()
   before_each(reset_test_mode)
 
   it("No keymaps given (nil) [ERORR]", function ()
+    test_mode.keymaps = nil
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
