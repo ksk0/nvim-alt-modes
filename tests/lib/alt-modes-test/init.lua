@@ -175,10 +175,17 @@ local run_test = function ()
   local modes = require("alt-modes-test.modes")
   local M = require("alt-modes")
 
-  M:add('testing', modes.testing)
+  -- print(vim.inspect(modes.testing.keymaps))
+
+  -- local help_1 = require('alt-modes.core.help')("HA HA", modes.help_mode.keymaps)
+  local help_2 = require('alt-modes.core.help')("HA HA", modes.testing.keymaps)
+  -- print(vim.inspect(help))
+  help_2:show()
+
+  -- M:add('testing', modes.testing)
 
   -- print(vim.inspect(M._altmodes['testing']))
-  M:enter('testing')
+  -- M:enter('testing')
 end
 
 return run_test
