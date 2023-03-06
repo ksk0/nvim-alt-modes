@@ -51,6 +51,8 @@ end
 M.intersection = function(list_a, ...)
   list_a = list_a or {}
 
+  list_a = M.union(list_a)
+
   local count = count_members(extend(list_a, M.union(...)))
   local result = {}
 
