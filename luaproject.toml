@@ -1,5 +1,5 @@
 [tool.runner]
-  lib = ["lua", "tests/lib"]
+  lib = ["lua", "tests/lua"]
   plugin = true
   init   = "plugin/.init"
 
