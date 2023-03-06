@@ -1,14 +1,15 @@
+local native = require('alt-modes.native')
 local M = {}
 
 M.misc     = {}
 M.mode     = {}
 M.tabs     = {}
 M.yank     = {}
-M.folds    = {}
 M.spell    = {}
 M.layout   = {}
 M.modify   = {}
 M.scroll   = {}
+M.folding  = {}
 M.buffers  = {}
 M.present  = {}
 M.windows  = {}
@@ -17,7 +18,7 @@ M.movement = {}
 local misc    = M.misc
 local mode    = M.mode
 local move    = M.movement
-local folds   = M.folds
+local folding = M.folding
 local spell   = M.spell
 local layout  = M.layout
 local modify  = M.modify
@@ -173,8 +174,8 @@ misc.operator = {
 }
 
 misc.mode = {
-  'C-\\_C-N',              -- go to Normal mode (no-op)
-  'C-\\_C-G',              -- go to Normal mode (no-op)
+  '<C-bslash><C-N>',              -- go to Normal mode (no-op)
+  '<C-bslash><C-G>',              -- go to Normal mode (no-op)
 }
 
 
@@ -520,7 +521,7 @@ move.cursor = {
   'z+',                    --    cursor on line N (default line below window), otherwise like "z<CR>"
   'z^',                    --    cursor on line N (default line above window), otherwise like "z-"
 -- ============================================================================
-  folds.move,
+  folding.move,
   spell.move,
 }
 
@@ -567,7 +568,7 @@ move.tags = {
   'g<RightMouse>',         --    same as <CTRL-RightMouse>
   'g<LeftMouse>',          --    same as <CTRL-LeftMouse>
 
-  'g CTRL-]',              --    :tjump to the tag under the cursor
+  '<C-W>g<C-]>',              --    :tjump to the tag under the cursor
 
   'g]',                    --    :tselect on the tag under the cursor
 
@@ -796,36 +797,36 @@ scroll.horizontal = {
 -- ==============================================
 -- FOLDS commands
 --
-folds.move = {
+folding.move = {
   '[z',                    -- 1  move to start of open fold
   ']z',                    -- 1  move to end of open fold
   'zj',                    -- 1  move to the start of the next fold
   'zk',                    -- 1  move to the end of the previous fold
 }
 
-folds.open = {
+folding.open = {
   'zo',                    --    open fold
   'zO',                    --    open folds recursively
 }
 
-folds.close = {
+folding.close = {
   'zC',                    --    close folds recursively
   'zc',                    --    close a fold
   'zv',                    --    open enough folds to view the cursor line
 }
 
-folds.toggle = {
+folding.toggle = {
   'zA',                    --    open a closed fold or close an open fold recursively
   'za',                    --    open a closed fold, close an open fold
 }
 
-folds.enable = {
+folding.enable = {
   'zn',                    --    reset 'foldenable'
   'zN',                    --    set 'foldenable'
   'zi',                    --    toggle 'foldenable'
 }
 
-folds.level = {
+folding.level = {
   'zM',                    --    set 'foldlevel' to zero
   'zR',                    --    set 'foldlevel' to the deepest fold
 
@@ -836,14 +837,14 @@ folds.level = {
   'zx',                    --    re-apply 'foldlevel' and do "zv"
 }
 
-folds.create = {
+folding.create = {
   -- only if foldmethod is "manual"
   --
   'zF',                    --    create a fold for N lines
   'zf{motion}',            --    create a fold for N-move text
 }
 
-folds.delete = {
+folding.delete = {
   -- only if foldmethod is "manual"
   --
   'zE',                    --    eliminate all folds
@@ -908,8 +909,8 @@ present.show = {
   ']d',                    -- show first #define found in current and included files matching the word under the cursor, start searching at cursor position
   ']i',                    -- show first line found in current and included files that contains the word under the cursor, start searching at cursor position
 
-  'g CTRL-A',              -- dump a memory profile
-  'g CTRL-G',              -- show information about current cursor position
+  'g<C-A>',              -- dump a memory profile
+  'g<C-G>',              -- show information about current cursor position
   '<C-G>',                 -- display current file name and position
   'g8',                    -- print hex value of bytes used in UTF-8 character under the cursor
   'ga',                    -- print ascii value of character under the cursor
@@ -937,4 +938,8 @@ buffers.write = {
 }
 
 
-return require("alt-modes.native.filter")(M)
+M = native.filter(M)
+
+native.combos(native.flatten(M))
+
+return M
