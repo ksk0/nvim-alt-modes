@@ -48,7 +48,7 @@ local arg_test = function(...)
 end
 
 local list_test = function ()
-  local list_1 = {"jedan", "dva", "tri"}
+  local list_1 = {"jedan", "dva", "tri", "tri", "dva", "jedan"}
   local list_2 = {"tri", "cetiri", "pet"}
   local list_3 = {"jedan", "cetiri", "sest", "sedam"}
   local list_4
@@ -56,6 +56,8 @@ local list_test = function ()
 
   local list = require("alt-modes.core.list")
 
+  local union_z = list.union()
+  local union_0 = list.union(list_1)
   local union_1 = list.union(list_1,list_2)
   local union_2 = list.union(list_1,list_3)
   local union_3 = list.union(list_2,list_3)
@@ -63,6 +65,8 @@ local list_test = function ()
   local union_5 = list.union(list_4,list_5)
   local union_6 = list.union(list_4,list_5, list_1)
 
+  local sub_z = list.sub()
+  local sub_0 = list.sub({}, list_2)
   local sub_1 = list.sub(list_1, list_2)
   local sub_2 = list.sub(list_1, list_3)
   local sub_3 = list.sub(list_2, list_3)
@@ -71,6 +75,8 @@ local list_test = function ()
   local sub_6 = list.sub(list_4, list_5, list_1)
   local sub_7 = list.sub(list_1, list_4, list_5)
 
+  local int_z = list.intersection()
+  local int_0 = list.intersection({}, list_2)
   local int_1 = list.intersection(list_1, list_2)
   local int_2 = list.intersection(list_1, list_3)
   local int_3 = list.intersection(list_2, list_3)
@@ -80,6 +86,8 @@ local list_test = function ()
   local int_7 = list.intersection(list_1, list_4, list_5)
 
   print("Union:")
+  print(vim.inspect(union_z))
+  print(vim.inspect(union_0))
   print(vim.inspect(union_1))
   print(vim.inspect(union_2))
   print(vim.inspect(union_3))
@@ -88,6 +96,8 @@ local list_test = function ()
   print(vim.inspect(union_6))
   print (" ")
   print ("Substraction:")
+  print(vim.inspect(sub_z))
+  print(vim.inspect(sub_0))
   print(vim.inspect(sub_1))
   print(vim.inspect(sub_2))
   print(vim.inspect(sub_3))
@@ -97,6 +107,8 @@ local list_test = function ()
   print(vim.inspect(sub_7))
   print (" ")
   print ("Intersection:")
+  print(vim.inspect(int_z))
+  print(vim.inspect(int_0))
   print(vim.inspect(int_1))
   print(vim.inspect(int_2))
   print(vim.inspect(int_3))
@@ -162,7 +174,46 @@ local nmap_test = function()
   vim.cmd("nmap <buffer>")
 end
 
+local combo_test = function()
+  local normal = require('alt-modes.native.normal')
+  local decouple = require('alt-modes.native.combos')
+
+  -- lhs = 'dva<c-w>jedan<c-x>tri'
+  -- print(lhs .. ":" .. vim.inspect(decouple(lhs)))
+  --
+  -- do return end
+
+  normal = require('alt-modes.native.flatten')(normal)
+
+  local start = os.clock()
+
+  -- for _ = 1,10000 do
+  --   for _,kmap in ipairs(normal) do
+  --     decouple(kmap)
+  --   end
+  -- end
+  --
+  -- for _,kmap in ipairs(normal) do
+  --   local combos = decouple(kmap)
+  --   print(kmap .. ":" .. vim.inspect(combos))
+  -- end
+
+  -- for _ = 1,10000 do
+  --   decouple(normal)
+  -- end
+
+  for _,combo in ipairs(decouple(normal)) do
+    print("Combo:" .. vim.inspect(combo))
+  end
+
+
+  print(string.format("elapsed time: %.2f\n", os.clock() - start))
+end
+
 local run_test = function ()
+  -- combo_test()
+  -- do return end
+
   -- list_test()
   -- local_test()
   -- do return end
@@ -175,17 +226,21 @@ local run_test = function ()
   local modes = require("alt-modes-test.modes")
   local M = require("alt-modes")
 
+  print("M: " .. tostring(M))
+
   -- print(vim.inspect(modes.testing.keymaps))
 
   -- local help_1 = require('alt-modes.core.help')("HA HA", modes.help_mode.keymaps)
-  local help_2 = require('alt-modes.core.help')("HA HA", modes.testing.keymaps)
+  -- local help_2 = require('alt-modes.core.help')("HA HA", modes.testing.keymaps)
   -- print(vim.inspect(help))
-  help_2:show()
+  -- help_2:show()
 
-  -- M:add('testing', modes.testing)
+  M:add('testing', modes.testing)
 
   -- print(vim.inspect(M._altmodes['testing']))
-  -- M:enter('testing')
+  LUA_TESTING_ME = true
+
+  M:enter('testing')
 end
 
 return run_test

@@ -1,4 +1,3 @@
-
 local luacache = (_G.__luacache or {}).cache
 
 local reload = function(what)
@@ -14,12 +13,8 @@ local reload = function(what)
     package.loaded[what] = nil
   end
 
-  -- print('Reloading "' .. what .. '"')
-
   for pack, _ in pairs(package.loaded) do
     if string.find(pack, pattern) then
-
-      -- print("Pack: " .. pack)
 
       package.loaded[pack] = nil
 
