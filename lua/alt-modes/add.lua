@@ -1,4 +1,6 @@
 local list = require("alt-modes.core.list")
+local help = require("alt-modes.core.help")
+
 local fn   = vim.fn
 local map  = vim.tbl_map
 
@@ -131,12 +133,12 @@ local check_keymaps = function(altmode)
     error(altmode.name .. ' (keymaps definition): "keymaps" is keymap definition or list of former', 0)
   end
 
-  if not vim.tbl_islist(keymaps) then
-    keymaps = {keymaps}
-  end
-
   if vim.tbl_isempty(keymaps) then
     error(altmode.name .. ' (keymaps definition): no keymaps given', 0)
+  end
+
+  if not vim.tbl_islist(keymaps) then
+    keymaps = {keymaps}
   end
 
   altmode.keymaps = keymaps
@@ -445,6 +447,7 @@ local parse_keymaps = function (altmode)
   table.sort(altmode._keymaps,
     function(km_1, km_2)
       return km_1.lhs < km_2.lhs
+      -- return km_1.lhs > km_2.lhs
     end
   )
 end
@@ -491,57 +494,11 @@ end
 -- ===============================================
 -- help parsing functions
 --
-local function parse_keymaps_help (altmode, keymap)
-  if not keymap then
-    local raw_help = parse_keymaps_help(altmode, altmode.keymaps)
-    local last_group = {}
-    local help = {}
-
-    for _,h in ipairs(raw_help) do
-      if vim.tbl_islist(h) then
-        table.insert(help, h)
-      else
-        table.insert(last_group, h)
-      end
-    end
-
-    if #last_group ~= 0 then
-      table.insert(help, last_group)
-    end
-
-    local lhs_list = map(function(kmap) return kmap.lhs end, altmode._keymaps)
-
-    altmode._help = help
-    -- altmode._lhs_len = max(map(string.len, lhs_list)) or 0
-
-    return
-  end
-
-
-  if vim.tbl_islist(keymap) then
-    local kmaps = {}
-
-    for _,kmap in ipairs(keymap) do
-      table.insert(kmaps, parse_keymaps_help(altmode, kmap))
-    end
-
-    if #kmaps == 0 then return nil end
-
-    return kmaps
-
-  else
-    local desc = keymap.options.desc
-
-    if not desc then
-      return nil
-    else
-      return {
-        desc = desc,
-        lhs  = keymap.lhs,
-      }
-    end
-
-  end
+local function parse_keymaps_help (altmode)
+  -- print(vim.inspect(altmode.name))
+  -- print(vim.inspect(altmode.keymaps))
+  altmode._help = help(altmode.name, altmode.keymaps)
+  -- print(vim.inspect(altmode._help))
 end
 
 
@@ -559,12 +516,6 @@ local add_altmode = function (name, altmode)
   parse_keymap_options(altmode)       -- check default options for keymaps
   parse_keymaps(altmode)              -- parse keymap list
   parse_keymaps_help(altmode)         -- create_help_structure
-
-  -- for i,h in ipairs(altmode._help) do
-  --   print("Part (" .. tostring(i) .. "):" .. vim.inspect(h))
-  -- end
-  --
-  -- print("Keymaps: " .. vim.inspect(altmode._keymaps))
 
   parse_timeout(altmode)              -- check timeout value
   parse_help_keymap(altmode)          -- parse help keymap
