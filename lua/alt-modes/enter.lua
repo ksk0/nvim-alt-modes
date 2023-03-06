@@ -1,6 +1,6 @@
 local api = vim.api
-local set_keymap = vim.keymap.set
-local del_keymap = vim.keymap.del
+local keymap_set = vim.keymap.set
+local keymap_del = vim.keymap.del
 
 local list = require("alt-modes.core.list")
 local native = require("alt-modes.native")
@@ -10,6 +10,21 @@ local native_modes = {
 }
 
 local default_options = {
+    noremap = true,
+    nowait  = false,
+    silent  = true,
+    expr    = false,
+}
+
+
+local replica_options = {
+    noremap = true,
+    nowait  = true,
+    silent  = false,
+    expr    = false,
+}
+
+local shadow_options = {
     noremap = true,
     nowait  = false,
     silent  = true,
@@ -213,43 +228,55 @@ end
 -- set alternative buffer keymaps
 --
 local show_keymap = function (lhs)
-  vim.notify("Pressed: " .. lhs)
+  -- do return end
+  vim.notify("Shaddowed: " .. lhs)
 end
 
-local set_keymaps = {}
+local set_keymap = setmetatable({}, {
+  __call = function (_,buffer, kmap)
+    kmap.options.buffer = buffer
+    keymap_set(kmap.mode, kmap.lhs, kmap.rhs, kmap.options)
+  end
+})
 
-set_keymaps.set = function(buffer, kmap)
-  kmap.options.buffer = buffer
-  set_keymap(kmap.mode, kmap.lhs, kmap.rhs, kmap.options)
+set_keymap.set = function(buffer, kmap)
+  -- print('Set: ' .. kmap.lhs .. " action: " .. tostring(kmap.rhs))
+  set_keymap(buffer, kmap)
 end
 
-set_keymaps.keep = function(buffer, kmap)
-  set_keymaps.set(buffer, kmap)
+set_keymap.keep = function(buffer, kmap)
+  set_keymap(buffer, kmap)
 end
 
-set_keymaps.shadow = function(buffer, kmap)
+set_keymap.shadow = function(buffer, kmap)
   local shadow_kmap = {
     lhs = kmap.lhs,
-    rhs = "", -- function() show_keymap(kmap.lhs) end,
+    rhs = function() show_keymap(kmap.lhs) end,
     mode = kmap.mode,
-    options = default_options,
+    options = shadow_options,
   }
 
-  set_keymaps.set(buffer, shadow_kmap)
+  set_keymap(buffer, shadow_kmap)
 end
 
-set_keymaps.replicate = function(buffer, kmap)
+set_keymap.replicate = function(buffer, kmap)
   local replica_kmap = {
     lhs = kmap.lhs,
     rhs = kmap.lhs,
     mode = kmap.mode,
-    options = default_options,
+    options = replica_options,
   }
 
-  set_keymaps.set(buffer, replica_kmap)
+  -- print("Replicating: "  .. vim.inspect(replica_kmap))
+
+  set_keymap(buffer, replica_kmap)
 end
 
-set_keymaps.pass = function(_,_)
+set_keymap.native = function(_,_)
+  -- print("Pass: " .. vim.inspect(kmap))
+end
+
+set_keymap.pass = function(_,_)
   -- print("Pass: " .. vim.inspect(kmap))
 end
 
@@ -336,11 +363,15 @@ local get_keymap_actions = function (alt_state)
     current_native._ordered
   )
 
+  -- print(vim.inspect(current_global))
+
   -- =================================
   -- define what to do with active
   -- keymaps.
   --
   local actions = {}
+  local shadows = {}
+  local natives = {}
   local mode = alt_state.mode
 
   for _,lhs in ipairs(current_all) do
@@ -358,15 +389,45 @@ local get_keymap_actions = function (alt_state)
         table.insert(actions, {action = 'pass', kmap = {lhs = lhs, mode = mode}})
 
       elseif kept_native[lhs] then
-        table.insert(actions, {action = 'replicate', kmap = {lhs = lhs, mode = mode}})
+        if current_global[lhs] then
+          table.insert(actions, {action = 'replicate', kmap = {lhs = lhs, mode = mode}})
+        else
+          local action = {action = 'native', kmap = {lhs = lhs, mode = mode}}
+
+          table.insert(actions, action)
+          table.insert(natives, lhs)
+        end
 
       -- if not in "keeps" shadow this keymap
       --
       else
-        table.insert(actions, {action = 'shadow', kmap = {lhs = lhs, mode = mode}})
+        local action = {action = 'shadow', kmap = {lhs = lhs, mode = mode}}
+
+        table.insert(actions, action)
+        shadows[lhs] = action
       end
     end
   end
+
+  local shadow_keys = vim.tbl_keys(shadows)
+  local lhs_combos = vim.tbl_flatten(native.combos(natives))
+  lhs_combos = list.union(lhs_combos)
+  local replicate = list.intersection(shadow_keys, lhs_combos)
+
+  -- print('Natives('   .. tostring(#natives)     .. "): " .. vim.inspect(natives))
+  -- print('Shadows ('  .. tostring(#shadow_keys) .. "): " .. vim.inspect(shadow_keys))
+  -- print('Combos ('   .. tostring(#lhs_combos)  .. "): " .. vim.inspect(lhs_combos))
+  -- print('Critical (' .. tostring(#replicate)  .. "): " .. vim.inspect(replicate))
+  --- print("Shadows: " .. vim.inspect(shadows))
+
+  for _,lhs in ipairs(replicate) do
+    print(vim.inspect(shadows[lhs]))
+    shadows[lhs].action = 'replicate'
+  end
+
+  -- print('Combos (' .. tostring(#combos) .. "): " .. vim.inspect(combos))
+  -- print('Combos (' .. tostring(#combos) .. "): " .. vim.inspect(combos))
+
 
   -- ====================================
   -- sort and add alternative keymaps (
@@ -383,7 +444,7 @@ end
 local clear_buffer_keymaps = function(alt_state)
 
   for _,kmap in ipairs(alt_state.snapshot) do
-    local _,_ pcall(del_keymap, kmap.mode, kmap.lhs, {buffer = kmap.buffer})
+    local _,_ pcall(keymap_del, kmap.mode, kmap.lhs, {buffer = kmap.buffer})
   end
 end
 
@@ -391,18 +452,19 @@ local set_buffer_keymaps = function(alt_state)
   local buffer = alt_state.buffer
 
   for _,action in ipairs(alt_state.actions) do
-    set_keymaps[action.action](buffer, action.kmap)
+    -- print(action.action, action.kmap.lhs)
+    set_keymap[action.action](buffer, action.kmap)
   end
 end
 
 local set_timeout = function(alt_state)
-  alt_state.timeout = vim.opt.timeoutlen._value
-
   local timeout = alt_state.timeout
 
   if not timeout then
     return
   end
+
+  alt_state.timeout = vim.opt.timeoutlen._value
 
   vim.opt.timeoutlen = timeout
 end
