@@ -441,7 +441,7 @@ local construct_help = function (self)
   --
   local win_width = fn.winwidth(WINDOW)
 
-  if self.help and self.format.win_width == win_width then
+  if self.help and format.win_width == win_width then
     return
   end
 
@@ -495,8 +495,8 @@ local function extract_help_blocks (keymaps, help_text)
     if vim.tbl_islist(kmap) then
       extract_help_blocks(kmap, help_text)
     else
-      if kmap.desc then
-        table.insert(help_block, {lhs = kmap.lhs, desc = kmap.desc})
+      if kmap.options.desc then
+        table.insert(help_block, {lhs = kmap.lhs, desc = kmap.options.desc})
       end
     end
   end
@@ -639,7 +639,7 @@ local show_help = function(self)
   am:enter("alt-mode-help", BUFFER)
 end
 
-local hide_help = function(self)
+local hide_help = function()
   api.nvim_win_close(WINDOW, true)
   api.nvim_buf_delete(BUFFER, {})
 
@@ -668,9 +668,33 @@ local setup = function(_, name, keymaps)
   return setmetatable(help, M)
 end
 
+M.shown = function ()
+  if not WINDOW then
+    return false
+  end
+
+  if vim.api.nvim_win_get_config(WINDOW).zindex then
+    return true
+  end
+
+  -- if there is no window reset ID
+  --
+  WINDOW = nil
+
+  return false
+
+  -- if BUFFER and not fn.bufexists(BUFFER) then
+  --   BUFFER = nil
+  -- end
+  --
+  -- 
+end
+
 M.show = function (self)
+  vim.notify("Showing help")
+
   if not self._text then return end
-  if help_shown() then return end
+  if M:shown() then return end
 
   create_help_buffer()
   create_help_window()
@@ -679,16 +703,16 @@ M.show = function (self)
   show_help(self)
 end
 
-M.hide = function(self)
-  if not help_shown() then return end
+M.hide = function()
+  if not M:shown() then return end
 
-  hide_help(self)
+  hide_help()
 end
 
 M.toggle = function (self)
   if not self._text then return end
 
-  if help_shown() then
+  if M:shown() then
     M:hide()
   else
     M:show()
