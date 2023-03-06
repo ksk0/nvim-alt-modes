@@ -16,8 +16,6 @@ return setmetatable(M, {
     local ok, val = pcall(require, module)
 
     if ok then
-      -- vim.notify("Found: " .. module)
-      -- print("Found: " .. module)
       rawset(t, k, val)
     else
       val = nil
