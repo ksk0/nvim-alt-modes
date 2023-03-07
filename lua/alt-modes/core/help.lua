@@ -74,8 +74,6 @@ local init_higlighting = function()
 
     vim.cmd("highlight " .. hi_name .. " guifg=#" .. string.format("%06x", fade_fg))
   end
-
-  INITIALIZED = true
 end
 
 local init_help_mode = function ()
@@ -87,6 +85,8 @@ local initalize = function ()
 
   init_higlighting()
   init_help_mode()
+
+  INITIALIZED = true
 end
 
 
@@ -304,29 +304,64 @@ local center_text = function(text, width)
   return (string.rep(" ", padding) .. text)
 end
 
+local format_lhs = function(lhs)
+  return lhs:gsub('(<[^>]+>)',
+    function(s)
+      return s:gsub(' ','space')
+    end
+  )
+end
+
 local lhs_highlighting = function(lhs, format)
-  local special_start,special_end = lhs:find('<[^>]+>')
+  lhs = format_lhs(lhs)
+
+  local lhs_len   = format.lhs_len
+  local offset    =  lhs_len - string.len(lhs)
   local highlight = {}
 
-  if special_start ~= nil then
-    table.insert(highlight, {
-      h_name  = "AltModeHelpSpecial",
-      h_start = 0,
-      h_end   = special_end,
-    })
+  while lhs ~= "" do
+    local special_start,special_end = lhs:find('<[^>]+>')
 
-    table.insert(highlight, {
-      h_name  = "AltModeHelpLHS",
-      h_start = special_end + 1,
-      h_end   = format.lhs_len + 3
-    })
+    if special_start then
+      -- if there are normal characters at
+      -- the begginig add highlighting
+      --
+      if special_start ~= 1 then
+        table.insert(highlight, {
+          h_name  = "AltModeHelpLHS",
+          h_start = offset + 1,
+          h_end   = offset + special_start -- - 1
+        })
+      end
 
-  else
-    table.insert(highlight, {
-      h_name  = "AltModeHelpLHS",
-      h_start = 0,
-      h_end   = format.lhs_len + 3
-    })
+      table.insert(highlight, {
+        h_name  = "AltModeHelpSpecial",
+        h_start = offset + special_start,
+        h_end   = offset + special_end + 1,
+      })
+
+      offset = offset + special_end
+      lhs    = lhs:sub(special_end + 1)
+
+      if lhs == "" then
+        table.insert(highlight, {
+          h_name  = "AltModeHelpLHS",
+          h_start = offset + 1,
+          h_end   = lhs_len + 3
+        })
+
+        break
+      end
+
+    else
+      table.insert(highlight, {
+        h_name  = "AltModeHelpLHS",
+        h_start = offset  + 1,
+        h_end   = lhs_len + 3
+      })
+
+      break
+    end
   end
 
   return highlight
@@ -393,7 +428,8 @@ end
 
 local construct_help_text = function(format, raw_text)
   if (format.text_len < string.len(raw_text)) then
-    return string.sub(raw_text,1,format.text_len)
+    -- return string.sub(raw_text,1,format.text_len)
+    return raw_text:sub(1,format.text_len)
   else
     return raw_text
   end
@@ -447,7 +483,7 @@ local construct_help = function (self)
 
   format.win_width  = win_width
   format.win_height = fn.winheight(WINDOW)
-  format.text_len   = format.win_width - format.left_offset - format.right_offset
+  format.text_len   = format.win_width - format.left_offset - format.right_offset + 1
 
   local help  = {}
 
@@ -476,7 +512,8 @@ local function extract_lhs_width (help_text, max_len)
     if vim.tbl_islist(kmap) then
       lhs_len = extract_lhs_width(kmap, max_len)
     else
-      lhs_len = #kmap.lhs
+      -- lhs_len = #kmap.lhs
+      lhs_len = string.len(format_lhs(kmap.lhs))
     end
 
     if lhs_len > max_len then max_len = lhs_len end
@@ -537,7 +574,7 @@ local extract_help = function (keymaps)
   --
   for _,block in ipairs(help_text) do
     for _,kmap in ipairs(block) do
-      kmap.raw_text = string.format(line_format, "", kmap.lhs, kmap.desc)
+      kmap.raw_text = string.format(line_format, "", format_lhs(kmap.lhs), kmap.desc)
       kmap.hi_lhs   = lhs_highlighting(kmap.lhs, format)
     end
   end

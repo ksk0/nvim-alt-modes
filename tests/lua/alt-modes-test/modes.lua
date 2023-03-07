@@ -39,6 +39,48 @@ modes.testing = {
   keymaps = {
     {
       {
+        lhs  = '<C-X>',
+        rhs  = '',
+        desc = '<C-X>AB',
+      },
+      {
+        lhs  = 'AB<C-X>',
+        rhs  = '',
+        desc = 'AB<C-X>',
+      },
+      {
+        lhs  = 'AB<C-X>CD',
+        rhs  = '',
+        desc = 'AB<C-X>CD',
+      },
+      {
+        lhs  = 'AB<C-X>CD<C-Z>',
+        rhs  = '',
+        desc = 'AB<C-X>CD<C-Z>',
+      },
+      {
+        lhs  = 'AB<C-X>CD<C-Z>EF',
+        rhs  = '',
+        desc = 'AB<C-X>CD<C-Z>EF',
+      },
+      {
+        lhs  = 'AB<C-X><C-Z>',
+        rhs  = '',
+        desc = 'AB<C-X><C-Z>',
+      },
+      {
+        lhs  = 'AB<C-X><C-Z>EF',
+        rhs  = '',
+        desc = 'AB<C-X><C-Z>EF',
+      },
+      {
+        lhs  = 'ABCDEFGHIJKLMNOPQR',
+        rhs  = '',
+        desc = 'ABCDEFGHIJKLMNOPQR',
+      },
+    },
+    {
+      {
         lhs  = 'g?',
         rhs  = ':lua require("alt-modes"):help()<CR>',
         desc = 'Show help',
