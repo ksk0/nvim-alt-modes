@@ -909,8 +909,8 @@ present.show = {
   ']d',                    -- show first #define found in current and included files matching the word under the cursor, start searching at cursor position
   ']i',                    -- show first line found in current and included files that contains the word under the cursor, start searching at cursor position
 
-  'g<C-A>',              -- dump a memory profile
-  'g<C-G>',              -- show information about current cursor position
+  'g<C-A>',                -- dump a memory profile
+  'g<C-G>',                -- show information about current cursor position
   '<C-G>',                 -- display current file name and position
   'g8',                    -- print hex value of bytes used in UTF-8 character under the cursor
   'ga',                    -- print ascii value of character under the cursor
