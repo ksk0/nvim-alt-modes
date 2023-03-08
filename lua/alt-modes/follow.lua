@@ -68,6 +68,7 @@ local parse_event = function(event, options)
     options[event] = {
       action = e_options,
       once = options.once,
+      init = options.init,
       filter = options.filter,
     }
 
@@ -141,28 +142,28 @@ local check_options = function(options)
 end
 
 local parse_options = function(options)
-  check_options(options)
+  local follower = vim.deepcopy(options)
 
-  if options.once == nil then
-    options.once = true
+  check_options(follower)
+
+  if follower.once == nil then
+    follower.once = true
   end
 
-  if options.init == nil then
-    options.init = false
+  if follower.init == nil then
+    follower.init = false
   end
 
-  if options.filter == nil then
-    options.filter = function () return true end
+  if follower.filter == nil then
+    follower.filter = function () return true end
   end
 
-  local opts = vim.tbl_keys(options)
+  local opts = vim.tbl_keys(follower)
   local events = list.sub(opts, global_options)
 
   for _,event in ipairs(events) do
-    parse_event(event, options)
+    parse_event(event, follower)
   end
-
-  local follower = vim.deepcopy(options)
 
   follower.init     = nil
   follower.filter   = nil
