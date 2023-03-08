@@ -32,6 +32,7 @@ configuration looks like:
     once   = false
 
     BufEnter = {
+      init   = true,
       filter = buff_enter_filter
       action = buff_enter_action,
       once   = true
@@ -43,22 +44,26 @@ configuration looks like:
 `config` basicaly consists of global options (`filter` and `once`) and list of
 events to be tracked.
 
-`action` has to be given for each event, i.e. function to be called appon event.
-Function takes single argument, which is ID of affected buffer. If no other
-options is given per event, `action` can be given directly as function
-(`BuffLeave` example).
+`action` is function that has to be given for each event, i.e. function to be
+called appon event. Function takes single argument, which is ID of affected
+buffer. If no other options is given per event, `action` can be given directly
+as function (`BuffLeave` example).
 
-`filter` option is function with single argument (buffer ID) used to filter
+`filter` is function with single argument (buffer ID) used to filter
 buffers of interest. If function returns `true,` action will be triggered, if
 returns `false` no action will be taken. If no filter is given, `true` is
 assumed for every event occurence.
 
-`once` option indicates that `action` will be run only once or for each
+`once` (boolean) option indicates that `action` will be run only once or for each
 event occurence, per buffer. If `true` it will be run only once. If `false`,
 action will be run for each event occurence. Defaulte is true false`. If finer 
 election of events is needed, it should be done using `filter` option.
 
-If `filter` and `once` are given per event, they override default/global one.
+`init` (bollean) option, indicates if `action` should be called when `follower` is
+initiated. It true, `action` will be called for current buffer when `follower`
+started.
+
+If `filter`, `once` and `init` are given per event, they override default/global one.
 
 
 UNFOLLOW
