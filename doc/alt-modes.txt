@@ -60,8 +60,8 @@ action will be run for each event occurence. Defaulte is true false`. If finer
 election of events is needed, it should be done using `filter` option.
 
 `init` (bollean) option, indicates if `action` should be called when `follower` is
-initiated. It true, `action` will be called for current buffer when `follower`
-started.
+initiated. If true, `action` will be called for current buffer when `follower`
+starts.
 
 If `filter`, `once` and `init` are given per event, they override default/global one.
 
