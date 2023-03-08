@@ -210,7 +210,74 @@ local combo_test = function()
   print(string.format("elapsed time: %.2f\n", os.clock() - start))
 end
 
+local follower_1 = function ()
+  local buf_enter = function (buffer)
+    vim.notify("Entered buffer: " .. tostring(buffer))
+  end
+
+  local buf_leave = function (buffer)
+    vim.notify("Left buffer: " .. tostring(buffer))
+  end
+
+  local config = {
+    once = false,
+    BufEnter = buf_enter,
+    BufLeave = buf_leave,
+  }
+
+  require('alt-modes'):follow(config)
+end
+
+local follower_2 = function ()
+  local buf_enter = function (buffer)
+    vim.notify("Entered buffer: " .. tostring(buffer), 'error')
+  end
+
+  local buf_leave = function (buffer)
+    vim.notify("Left buffer: " .. tostring(buffer), 'error')
+  end
+
+  local buf_new = function (buffer)
+    vim.notify("New buffer: " .. tostring(buffer), 'error')
+  end
+
+  local config = {
+    once = false,
+    BufEnter = {
+      init = true,
+      action = buf_enter,
+    },
+    BufNew    = buf_new,
+  }
+
+  require('alt-modes'):follow(config)
+end
+
+local follower_test = function ()
+  if not FOLLOWER_ON then
+    follower_1()
+    FOLLOWER_ON = 1
+
+  elseif FOLLOWER_ON == 1 then
+    follower_2()
+    FOLLOWER_ON = 2
+
+  else
+    vim.notify("Unfollowing")
+    require('alt-modes'):unfollow()
+
+    FOLLOWER_ON = FOLLOWER_ON + 1
+
+    if FOLLOWER_ON == 4 then
+      FOLLOWER_ON = nil
+    end
+  end
+end
+
 local run_test = function ()
+  follower_test()
+  do return end
+
   -- combo_test()
   -- do return end
 
@@ -226,7 +293,7 @@ local run_test = function ()
   local modes = require("alt-modes-test.modes")
   local M = require("alt-modes")
 
-  print("M: " .. tostring(M))
+  -- print("M: " .. tostring(M))
 
   -- print(vim.inspect(modes.testing.keymaps))
 
