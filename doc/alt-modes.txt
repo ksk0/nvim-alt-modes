@@ -1,0 +1,103 @@
+*alt-modes*                     Tool to define custom/alternative modes for nvim
+
+CONTENT
+Follower                                                     |alt-modes-folower|
+
+
+==============================================================================
+FOLLOWER                                                    *alt-modes-follower*
+
+Since {alt-mode} is valid only on single buffer, we should activate it on
+every buffer we are targeting to achive global {alt-mode} presence. To ease
+that, `follow()` command can be used.
+
+The idea is, that by using `follow()` command, we register functions to certain
+events of our choosing, which will be executed when event is triggered. Typical
+events used are `BufEnter` and `BufLeave`, but could be any of valid `vim` events. 
+
+Ending of `following`, is done with `unfollow()` command. `follow()` command can be
+called multiple times, each one overriding last one. At each moment only
+single follower is active: the last one. For each `follow()` called,
+coresponding `unfollow()` must be called. There is no single command for exiting
+all followers.
+
+
+FOLLOW
+
+`follow()` command takes single argument, which is configuration. Typical
+configuration looks like:
+>
+  config = {
+    filter = filter_function
+    once   = false
+
+    BufEnter = {
+      filter = buff_enter_filter
+      action = buff_enter_action,
+      once   = true
+    },
+
+    BufLeave = buff_leave_action
+  }
+<
+`config` basicaly consists of global options (`filter` and `once`) and list of
+events to be tracked.
+
+`action` has to be given for each event, i.e. function to be called appon event.
+Function takes single argument, which is ID of affected buffer. If no other
+options is given per event, `action` can be given directly as function
+(`BuffLeave` example).
+
+`filter` option is function with single argument (buffer ID) used to filter
+buffers of interest. If function returns `true,` action will be triggered, if
+returns `false` no action will be taken. If no filter is given, `true` is
+assumed for every event occurence.
+
+`once` option indicates that `action` will be run only once or for each
+event occurence, per buffer. If `true` it will be run only once. If `false`,
+action will be run for each event occurence. Defaulte is true false`. If finer 
+election of events is needed, it should be done using `filter` option.
+
+If `filter` and `once` are given per event, they override default/global one.
+
+
+UNFOLLOW
+
+`unfollow()` command is called with single argument: cleanup function that will
+be called for each affected buffer. Function takes single argument: buffer ID.
+If no arguments is given, `following` will end without any cleanup action.
+
+
+EXAMPLE
+
+Below code shows example, where for each buffer where `filetype == "python"`
+{alt-mode} `"debug"` will be entered.
+
+Code:
+>
+  local altmodes = require('alt-modes')
+
+  local is_python = function(buffer)
+    return (vim.fn.getbufvar(buffer,'&filetype') == 'python'
+  end
+
+  local activate_debug_mode = function(buffer)
+    altmodes:enter('debug', buffer)
+  end
+
+  local deactivate_debug_mode = function(buffer)
+    altmodes:exit(buffer)
+  end
+
+  local config = {
+    once     = true
+    filter   = is_python
+    BufEnter = activate_debug_mode
+  }
+
+
+  require('alt-modes'):follow(config)                   -- to activate follower
+  require('alt-modes'):unfollow(deactivate_debug_mode)  -- to end following
+<
+
+vim:tw=78:ts=2:ft=help
