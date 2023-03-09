@@ -303,6 +303,7 @@ local init_alt_state = function(self, name, buffer)
   alt_state.keymaps = altmode._keymaps    -- OK
   alt_state.overlay = altmode._overlay    -- OK
   alt_state.help    = altmode._help
+  alt_state.status  = altmode._status     -- OK
 
   self._states[buffer] = self._states[buffer] or {}
   table.insert(self._states[buffer], alt_state)
@@ -421,7 +422,6 @@ local get_keymap_actions = function (alt_state)
   --- print("Shadows: " .. vim.inspect(shadows))
 
   for _,lhs in ipairs(replicate) do
-    print(vim.inspect(shadows[lhs]))
     shadows[lhs].action = 'replicate'
   end
 
