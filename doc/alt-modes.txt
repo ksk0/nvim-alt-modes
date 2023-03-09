@@ -79,7 +79,7 @@ Below code shows example, where for each buffer where `filetype == "python"`
 {alt-mode} `"debug"` will be entered.
 
 Code:
->
+>lua
   local altmodes = require('alt-modes')
 
   local is_python = function(buffer)

@@ -22,6 +22,7 @@ local valid_config_options = {
   'exit',
   'help',
   'timeout',
+  'status',
 
   'overlay',
   'options',
@@ -185,6 +186,21 @@ local parse_timeout = function (altmode)
 
   if type(altmode._timeout) ~= "number" then
     error(altmode.name .. " (timeout): timeout must be a number!",0)
+  end
+end
+
+local parse_status = function (altmode)
+  altmode._status = altmode.status
+  altmode.status  = nil
+
+  if altmode._status == nil then
+    local status = altmode.name
+    altmode._status = function() return status end
+    return
+  end
+
+  if type(altmode._status) ~= "function" then
+    error(altmode.name .. " (status): status must be a function!",0)
   end
 end
 
@@ -518,6 +534,7 @@ local add_altmode = function (name, altmode)
   parse_keymaps_help(altmode)         -- create_help_structure
 
   parse_timeout(altmode)              -- check timeout value
+  parse_status(altmode)               -- check status function
   parse_help_keymap(altmode)          -- parse help keymap
   parse_exit_keymap(altmode)          -- parse exit keymap
 

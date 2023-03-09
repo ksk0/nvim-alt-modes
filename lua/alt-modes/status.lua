@@ -1,7 +1,7 @@
 local api  = vim.api
 local fn   = vim.fn
 
-local mode = function(self, buffer)
+local status = function(self, buffer)
   buffer = buffer or api.nvim_get_current_buf()
 
   local states = self._states[buffer]
@@ -17,8 +17,8 @@ local mode = function(self, buffer)
   local buffer_info = fn.getbufinfo(buffer)
 
   if #buffer_info ~= 0 then
-    return alt_state.name
+    return alt_state.status()
   end
 end
 
-return mode
+return status
