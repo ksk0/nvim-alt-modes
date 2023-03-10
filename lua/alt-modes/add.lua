@@ -23,6 +23,7 @@ local valid_config_options = {
   'help',
   'timeout',
   'status',
+  'general',
 
   'overlay',
   'options',
@@ -173,6 +174,19 @@ local parse_native_mode = function(altmode)
 
   if not is_ok then
     error(altmode.name .. " (mode definition): " .. error_msg, 0)
+  end
+end
+
+local parse_general = function (altmode)
+  altmode._general = altmode.general
+  altmode.general  = nil
+
+  if altmode._general == nil then
+    return
+  end
+
+  if type(altmode._general) ~= "number" then
+    error(altmode.name .. " (general): general option must be boolean!",0)
   end
 end
 
@@ -511,11 +525,8 @@ end
 -- ===============================================
 -- help parsing functions
 --
-local function parse_keymaps_help (altmode)
-  -- print(vim.inspect(altmode.name))
-  -- print(vim.inspect(altmode.keymaps))
+local function parse_help (altmode)
   altmode._help = help(altmode.name, altmode.keymaps)
-  -- print(vim.inspect(altmode._help))
 end
 
 
@@ -531,13 +542,15 @@ local add_altmode = function (name, altmode)
   parse_native_mode(altmode)          -- check native mode
   parse_overlay(altmode)              -- check overlay config
   parse_keymap_options(altmode)       -- check default options for keymaps
-  parse_keymaps(altmode)              -- parse keymap list
-  parse_keymaps_help(altmode)         -- create_help_structure
 
-  parse_timeout(altmode)              -- check timeout value
-  parse_status(altmode)               -- check status function
+  parse_keymaps(altmode)              -- parse keymap list
   parse_help_keymap(altmode)          -- parse help keymap
   parse_exit_keymap(altmode)          -- parse exit keymap
+
+  parse_general(altmode)              -- check if general mode
+  parse_timeout(altmode)              -- check timeout value
+  parse_status(altmode)               -- check status function
+  parse_help(altmode)                 -- create_help_structure
 
   altmode._name   = altmode.name
 

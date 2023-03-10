@@ -106,11 +106,27 @@ describe("Native mode:", function ()
   test_mode.mode = nil
 end)
 
+describe("General:", function ()
+  before_each(reset_test_mode)
+
+  it("General must be a boolean value[ERORR]", function ()
+    test_mode.general = 'foo'
+
+    local ok, msg = pcall(M.add, M, 'test', test_mode)
+
+    assert.is_not_true(ok)
+    assert.not_equal(nil, msg:match('general option must be boolean'))
+  end)
+
+  test_mode.general = nil
+  test_mode.mode = nil
+end)
+
 describe("Timeout:", function ()
   before_each(reset_test_mode)
 
   it("Timeout must be a number [ERORR]", function ()
-    test_mode.timeout = 'A'
+    test_mode.timeout = 'foo'
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
@@ -124,6 +140,22 @@ describe("Timeout:", function ()
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
+  test_mode.mode = nil
+end)
+
+describe("Status:", function ()
+  before_each(reset_test_mode)
+
+  it("Status must be function[ERORR]", function ()
+    test_mode.status= 'foo'
+
+    local ok, msg = pcall(M.add, M, 'test', test_mode)
+
+    assert.is_not_true(ok)
+    assert.not_equal(nil, msg:match('status must be a function'))
+  end)
+
+  test_mode.status = nil
   test_mode.mode = nil
 end)
 
