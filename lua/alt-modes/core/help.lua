@@ -3,11 +3,8 @@ local am    = require("alt-modes")
 
 local api = vim.api
 local fn  = vim.fn
-local map = vim.tbl_map
-local filter = vim.tbl_filter
 local extend = vim.fn.extend
 
-local F = nil
 local SHADES = 7  -- number of shade level for dimming out text
 
 local M = {}
@@ -15,7 +12,6 @@ local M = {}
 local BUFFER
 local WINDOW
 local INITIALIZED
-
 
 
 -- ============================================================================
@@ -60,6 +56,7 @@ local init_higlighting = function()
   local desc_fg    = hi_desc.foreground or hi_normal.foreground
   local desc_bg    = hi_normal.background
 
+  vim.cmd("highlight AltModeHelpCursor  guifg=#" .. string.format("%06x", desc_bg) .. "guibg=#" .. string.format("%06x", desc_bg))
   vim.cmd("highlight AltModeHelpSpecial guifg=#" .. string.format("%06x", special_fg))
   vim.cmd("highlight AltModeHelpTitle   guifg=#" .. string.format("%06x", keymap_fg) .. " gui=bold")
   vim.cmd("highlight AltModeHelpLHS     guifg=#" .. string.format("%06x", keymap_fg))
@@ -136,161 +133,6 @@ local create_help_window = function (height, width)
 
   for opt, val in pairs(options) do
     vim.api.nvim_win_set_option (WINDOW, opt, val)
-  end
-end
-
-
--- ============================================================================
--- OLD: Helper functions
---
-local max = function(list, value)
-  if not list then
-    return
-  end
-
-  local sorted = vim.deepcopy(list)
-  table.sort(sorted, function(a, b) return b < a end)
-  return sorted[1]
-end
-
-local valid_keymap = function(keymap)
-  local desc = keymap.options.desc
-
-  if desc == nil then
-    return false
-  elseif desc == "<help>" then
-    return false
-  elseif keymap.lhs:find("<Plug>") then
-    return false
-  else
-    return true
-  end
-end
-
-local order_by_description = function(key_a, key_b)
-  local a = key_a.options.desc
-  local b = key_b.options.desc
-
-  do return a < b end
-end
-
-local order_by_lhs = function(key_a, key_b)
-  local a = key_a.lhs
-  local b = key_b.lhs
-
-  local a_spec = a:find('<[^>]+>')
-  local b_spec = b:find('<[^>]+>')
-
-  if a_spec and b_spec then
-    return a < b
-  elseif a_spec then
-    return false
-  elseif b_spec then
-    return true
-  else
-    return a < b
-  end
-end
-
-
--- ============================================================================
--- create helpt text (line by line with higlighting)
--- 
-local construct_help_text_ORG = function(name, keymaps)
-  -- local kmaps = filter(valid_keymap, keymaps)
-  local lhs_list = map(function(kmap) return kmap.lhs end, kmaps)
-
-  table.sort(kmaps, order_by_description)
-
-  local format = {}
-
-  format.left_offset  = 1
-  format.right_offset = 1
-  format.win_width    = fn.winwidth(F.window)
-  format.win_height   = fn.winheight(F.window)
-
-  format.lhs_len  = max(map(string.len, lhs_list)) or 0
-  format.desc_len = format.win_width - format.lhs_len - format.left_offset - format.right_offset - 3
-  format.line     = string.format("%%%ds%%%ds : %%s", format.left_offset, format.lhs_len)
-
-  local text = {}
-
-  text = extend(text, construct_help_title(format,state))
-
-  for _,keymap in ipairs(kmaps) do
-    table.insert(text, construct_help_line(format,keymap))
-  end
-
-  local rest = format.win_height - #kmaps - 1
-
-  if rest == 0 then
-    return text
-  end
-
-  local highlight = {{
-    h_name  = "AltModeHelpDesc",
-    h_start = 0,
-    h_end   = -1,
-  }}
-
-  for _ = 1,rest do
-    table.insert(text, { text = "", highlight = highlight})
-  end
-
-  return text
-end
-
-local garbage = function ()
-  
-  if not help_text then
-    local raw_help = extract_help_text(altmode, altmode.keymaps)
-    local last_group = {}
-    local help = {}
-
-    for _,h in ipairs(raw_help) do
-      if vim.tbl_islist(h) then
-        table.insert(help, h)
-      else
-        table.insert(last_group, h)
-      end
-    end
-
-    if #last_group ~= 0 then
-      table.insert(help, last_group)
-    end
-
-    local lhs_list = map(function(kmap) return kmap.lhs end, altmode._keymaps)
-
-    altmode._help = help
-    -- altmode._lhs_len = max(map(string.len, lhs_list)) or 0
-
-    return
-  end
-
-
-  if vim.tbl_islist(help_text) then
-    local kmaps = {}
-
-    for _,kmap in ipairs(help_text) do
-      table.insert(kmaps, extract_help_text(altmode, kmap))
-    end
-
-    if #kmaps == 0 then return nil end
-
-    return kmaps
-
-  else
-    local desc = help_text.options.desc
-
-    if not desc then
-      return nil
-    else
-      return {
-        desc = desc,
-        lhs  = help_text.lhs,
-      }
-    end
-
   end
 end
 
@@ -403,8 +245,12 @@ end
 --
 local construct_help_title = function(format, help_title)
   local highlight_text = {{
-    h_name = "AltModeHelpTitle",
+    h_name = "AltModeHelpCursor",
     h_start = 0,
+    h_end = 0,
+  },{
+    h_name = "AltModeHelpTitle",
+    h_start = 1,
     h_end = -1
   }}
 
@@ -586,24 +432,6 @@ end
 -- ============================================================================
 -- show/hide help
 --
-local help_shown = function ()
-  if not WINDOW then
-    return false
-  end
-
-  if vim.api.nvim_win_get_config(WINDOW).zindex then
-    return true
-  end
-
-  -- if there is no window reset ID
-  --
-  WINDOW = nil
-
-  if BUFFER and not fn.bufexists(BUFFER) then
-    BUFFER = nil
-  end
-end
-
 local set_highlights = function (line, highlights)
   for _,hi in ipairs(highlights) do
     api.nvim_buf_add_highlight(BUFFER, -1, hi.h_name, line, hi.h_start, hi.h_end)
@@ -615,11 +443,9 @@ local set_text = function(line, text)
 end
 
 local show_help_title = function (self)
-  local title = self.title
-
   for i,line in ipairs(self.title) do
     local line_no = i - 1
-    set_text(line_no, line.text) 
+    set_text(line_no, line.text)
     set_highlights(line_no, line.highlight)
   end
 end
@@ -765,64 +591,6 @@ M.visible = function (self)
   if nlines > max_lines then nlines = max_lines end
 
   return offset, nlines
-end
-
-
--- ============================================================================
--- OLDS
---
-local show_help_ORG = function (self, buffer)
-  buffer = buffer or api.nvim_get_current_buf()
-
-  local states = self._states[buffer]
-
-  if not states then
-    vim.notify("There is no state to show help for!")
-    return
-  end
-
-  local state  = states[#states]
-
-  F = {}
-  F.buffer = create_help_buffer()
-  F.window = create_help_window(F.buffer)
-
-  local help_text = construct_help(state)
-
-  api.nvim_buf_set_lines(F.buffer, 0, -1, false, map(function(a) return a.text end, help_text))
-
-  for i, line in ipairs(help_text) do
-    for _, hi in ipairs(line.highlight) do
-      api.nvim_buf_add_highlight(F.buffer, -1, hi.h_name, (i - 1), hi.h_start, hi.h_end)
-    end
-  end
-
-  am:enter("alt-mode-help", F.buffer)
-
-  api.nvim_win_set_cursor(F.window, {1,0})
-
-  -- local keymap_opts = {noremap = true}
-  -- vim.api.nvim_buf_set_keymap(F.buffer, 'n', 'q', ':lua require("alt-modes"):help()<CR>', keymap_opts)
-end
-
-local hide_help_ORG = function ()
-  -- vim.notify("Closing HELP window")
-  api.nvim_win_close(F.window, true)
-  -- vim.notify("Closed window !")
-  api.nvim_buf_delete(F.buffer, {})
-  -- vim.notify("I have closed everything!")
-
-  am:exit(F.buffer)
-
-  F = nil
-end
-
-local help_ORG = function(self, buffer)
-  if F == nil then
-    show_help(self, buffer)
-  else
-    hide_help()
-  end
 end
 
 

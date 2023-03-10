@@ -106,19 +106,19 @@ describe("Native mode:", function ()
   test_mode.mode = nil
 end)
 
-describe("General:", function ()
+describe("Global:", function ()
   before_each(reset_test_mode)
 
-  it("General must be a boolean value[ERORR]", function ()
-    test_mode.general = 'foo'
+  it("Global must be a boolean value[ERORR]", function ()
+    test_mode.global = 'foo'
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match('general option must be boolean'))
+    assert.not_equal(nil, msg:match('global option must be boolean'))
   end)
 
-  test_mode.general = nil
+  test_mode.global = nil
   test_mode.mode = nil
 end)
 

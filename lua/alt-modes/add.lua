@@ -2,7 +2,6 @@ local list = require("alt-modes.core.list")
 local help = require("alt-modes.core.help")
 
 local fn   = vim.fn
-local map  = vim.tbl_map
 
 -- ===============================================
 -- valid and defaulte values
@@ -23,7 +22,7 @@ local valid_config_options = {
   'help',
   'timeout',
   'status',
-  'general',
+  'global',
 
   'overlay',
   'options',
@@ -34,16 +33,6 @@ local valid_config_options = {
 -- ===============================================
 -- helper functions
 --
-local max = function(item_list)
-  if not item_list then
-    return
-  end
-
-  local sorted = vim.deepcopy(item_list)
-  table.sort(sorted)
-  return sorted[1]
-end
-
 local function flatten_keymap_tree(keymap_tree)
   if type (keymap_tree) == "boolean" then
     return keymap_tree
@@ -177,16 +166,16 @@ local parse_native_mode = function(altmode)
   end
 end
 
-local parse_general = function (altmode)
-  altmode._general = altmode.general
-  altmode.general  = nil
+local parse_global = function (altmode)
+  altmode._global = altmode.global
+  altmode.global  = nil
 
-  if altmode._general == nil then
+  if altmode._global == nil then
     return
   end
 
-  if type(altmode._general) ~= "number" then
-    error(altmode.name .. " (general): general option must be boolean!",0)
+  if type(altmode._global) ~= "number" then
+    error(altmode.name .. " (global): global option must be boolean!",0)
   end
 end
 
@@ -547,7 +536,7 @@ local add_altmode = function (name, altmode)
   parse_help_keymap(altmode)          -- parse help keymap
   parse_exit_keymap(altmode)          -- parse exit keymap
 
-  parse_general(altmode)              -- check if general mode
+  parse_global(altmode)               -- check if global mode
   parse_timeout(altmode)              -- check timeout value
   parse_status(altmode)               -- check status function
   parse_help(altmode)                 -- create_help_structure
