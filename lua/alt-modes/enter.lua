@@ -25,7 +25,7 @@ local blocked_options = {
 
 
 -- =====================================================
--- collect current keymaps by "scope":
+-- collect active keymaps by "scope":
 --   buffer/global/native
 --
 local valid_keymap = function (k)
@@ -36,26 +36,26 @@ local valid_keymap = function (k)
   end
 end
 
-local collect_current_keymaps = {}
+local collect_active_keymaps = {}
 
-setmetatable(collect_current_keymaps, {
+setmetatable(collect_active_keymaps, {
   __call = function(_, alt_state)
     -- =================================
-    -- create list of all current keymaps
+    -- create list of all active keymaps
     --
     local K = {}
 
     for _,scope in ipairs({"buffer", "global", "native"}) do
-      K[scope] = collect_current_keymaps[scope](alt_state)
+      K[scope] = collect_active_keymaps[scope](alt_state)
     end
 
-    alt_state.current = K
+    alt_state.active = K
 
     return K
   end
 })
 
-collect_current_keymaps.buffer = function(alt_state)
+collect_active_keymaps.buffer = function(alt_state)
   local K = {}
   local ordered = {}
 
@@ -74,7 +74,7 @@ collect_current_keymaps.buffer = function(alt_state)
   return K
 end
 
-collect_current_keymaps.global = function (alt_state)
+collect_active_keymaps.global = function (alt_state)
   local K = {}
   local ordered = {}
 
@@ -93,7 +93,7 @@ collect_current_keymaps.global = function (alt_state)
   return K
 end
 
-collect_current_keymaps.native = function(alt_state)
+collect_active_keymaps.native = function(alt_state)
   local K = {}
   K._ordered = {}
 
@@ -116,7 +116,7 @@ end
 -- =====================================================
 -- Collect keymaps by future state (blocked/kept)
 --
-local collect_overlay = function(current_keymaps, overlay_keymaps)
+local collect_overlay = function(active_keymaps, overlay_keymaps)
   -- each active keymap (buffer/global/native) has defined
   -- "future state" in alternative mode. This state can be:
   --
@@ -136,7 +136,7 @@ local collect_overlay = function(current_keymaps, overlay_keymaps)
   end
 
   if overlay_keymaps == true then
-    return current_keymaps
+    return active_keymaps
   end
 
   local overlay = {}
@@ -160,7 +160,7 @@ end
 -- =====================================================
 -- Main keymap collection functions
 --
-local collect_alt_keymaps = function(alt_state)
+local collect_altmode_keymaps = function(alt_state)
   local mode = alt_state.mode
   local keymaps = {}
 
@@ -172,10 +172,10 @@ local collect_alt_keymaps = function(alt_state)
   )do
     if type(keymap.lhs) == 'table' then
       for _,lhs in ipairs(keymap.lhs) do
-        keymaps[lhs] = {scope = 'active'}
+        keymaps[lhs] = true
       end
     else
-      keymaps[keymap.lhs] = {scope = 'active'}
+      keymaps[keymap.lhs] = true
     end
   end
 
@@ -187,15 +187,15 @@ local collect_kept_keymaps = function(alt_state)
 
   for _,scope in ipairs({"buffer", "global", "native"}) do
     local overlay = alt_state.overlay[scope]
-    local current = alt_state.current[scope]
+    local active  = alt_state.active[scope]
 
-    local blocked = collect_blocked (current, overlay)
-    local kept    = collect_kept(current, overlay)
+    local blocked = collect_blocked (active, overlay)
+    local kept    = collect_kept(active, overlay)
     local default = overlay.default
 
     local keep = {}
 
-    for _,kmap in pairs(current._ordered) do
+    for _,kmap in pairs(active._ordered) do
 
       if kept[kmap] then
         keep[kmap] = true
@@ -214,23 +214,26 @@ local collect_kept_keymaps = function(alt_state)
   return K
 end
 
+local collect_keymaps = function(alt_state)
+end
+
 
 -- =====================================================
 -- keymap actions
 --
-local get_keymap_actions = function (alt_state)
+local get_buffer_actions = function (alt_state)
   -- =====================================================
   --
   --              (1) OK    (2) OK      (3) OK      (4) OK      (5) !!    (6) !!       
   --   -----------------------------------------------------------------------------
   --   A -------- [A]       [ ]         [ ]         [ ]         [A]       [ ]
-  --   B -------- [S]       [S]         [S]         [S]         [S]       [S]
-  --   G -------- [S]       [S]         [S]         [K]         [S]       [K]
-  --   N -------- [S]       [S]         [K]         [S]         [K]       [K]
+  --   B -------- [B]       [B]         [B]         [B]         [B]       [B]
+  --   G -------- [B]       [B]         [B]         [K]         [B]       [K]
+  --   N -------- [B]       [B]         [K]         [B]         [K]       [K]
   --   --------------------------------------------------------------------------------
   --   ACTION:    set       blocked     replicate   clear       set       clear
   --
-  --   a) collect keymaps
+  --   a) collect active keymaps
   --   b) collect altmaps
   --   c) collect kept
   --   d) collect blocked
@@ -246,25 +249,23 @@ local get_keymap_actions = function (alt_state)
   -- =================================
   -- collect keymaps
   --
-  local altmode_keymaps = collect_alt_keymaps(alt_state)
-  local current_keymaps = collect_current_keymaps(alt_state)
+  local altmode_keymaps = collect_altmode_keymaps(alt_state)
+  local active_keymaps  = collect_active_keymaps(alt_state)
   local kept_keymaps    = collect_kept_keymaps(alt_state)
 
-  local kept_buffer  = kept_keymaps.buffer
-  local kept_global  = kept_keymaps.global
-  local kept_native  = kept_keymaps.native
+  local kept_buffer   = kept_keymaps.buffer
+  local kept_global   = kept_keymaps.global
+  local kept_native   = kept_keymaps.native
 
-  local current_buffer = current_keymaps.buffer
-  local current_global = current_keymaps.global
-  local current_native = current_keymaps.native
+  local active_buffer = active_keymaps.buffer
+  local active_global = active_keymaps.global
+  local active_native = active_keymaps.native
 
-  local current_all = list.union(
-    current_buffer._ordered,
-    current_global._ordered,
-    current_native._ordered
+  local all_active = list.union(
+    active_buffer._ordered,
+    active_global._ordered,
+    active_native._ordered
   )
-
-  -- print(vim.inspect(current_global))
 
   -- =================================
   -- define what to do with active
@@ -275,14 +276,14 @@ local get_keymap_actions = function (alt_state)
   local natives = {}
   local mode = alt_state.mode
 
-  for _,lhs in ipairs(current_all) do
+  for _,lhs in ipairs(all_active) do
     -- check only kmaps which will not be activated
     --
     if not altmode_keymaps[lhs] then
       -- kept buffer kmap
       --
       if kept_buffer[lhs] then
-        table.insert(actions, {action = 'keep', kmap = current_buffer[lhs]})
+        table.insert(actions, {action = 'keep', kmap = active_buffer[lhs]})
 
       -- to keep global kmap, just pass through buffer
       --
@@ -290,7 +291,7 @@ local get_keymap_actions = function (alt_state)
         table.insert(actions, {action = 'pass', kmap = {lhs = lhs, mode = mode}})
 
       elseif kept_native[lhs] then
-        if current_global[lhs] then
+        if active_global[lhs] then
           table.insert(actions, {action = 'replicate', kmap = {lhs = lhs, mode = mode}})
         else
           local action = {action = 'native', kmap = {lhs = lhs, mode = mode}}
@@ -327,6 +328,10 @@ local get_keymap_actions = function (alt_state)
   end
 
   alt_state.actions = actions
+end
+
+local get_keymap_actions = function (alt_state)
+  get_buffer_actions(alt_state)
 end
 
 
