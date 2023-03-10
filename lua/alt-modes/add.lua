@@ -224,7 +224,7 @@ local parse_overlay_defaults = function (altmode)
   for _,scope in ipairs({"native", "global", "buffer"}) do
     local default = defaults[scope]
 
-    if not default or default == 'shadow' then
+    if not default or default == 'block' then
       defaults[scope] = false
     elseif default == 'keep' then
       defaults[scope] = true
@@ -281,8 +281,8 @@ local parse_overlay_mode = function(altmode, mode)
   altmode.overlay[mode] = overlay
 end
 
-local parse_overlay_shadows = function (altmode)
-  parse_overlay_mode(altmode, 'shadow')
+local parse_overlay_blocked = function (altmode)
+  parse_overlay_mode(altmode, 'block')
 end
 
 local parse_overlay_keeps = function (altmode)
@@ -293,7 +293,7 @@ local parse_overlay = function(altmode)
   altmode.overlay = altmode.overlay or {}
 
   local options = vim.tbl_keys(altmode.overlay)
-  local invalides = list.sub(options, {"default", "shadow", "keep"})
+  local invalides = list.sub(options, {"default", "block", "keep"})
 
   if #invalides ~= 0 then
     local invalid_list = '"' .. fn.join(invalides, '", "') .. '"'
@@ -303,29 +303,30 @@ local parse_overlay = function(altmode)
 
 
   parse_overlay_defaults(altmode)
-  parse_overlay_shadows(altmode)
+  parse_overlay_blocked(altmode)
   parse_overlay_keeps(altmode)
 
   -- ======================================
-  -- if keep is "true", shadowing can't be
+  -- if keep is "true", blocking can't be
   -- done. Raise error!
   --
   local overlay = altmode.overlay
   for _,scope in ipairs({"native", "global", "buffer"}) do
-    if type(overlay.keep[scope]) ~= 'table' and overlay.shadow[scope] == overlay.keep[scope] then
-      local msg = " (keep/shadow): can't simultaniously keep and shadow %s keymaps"
+    if type(overlay.keep[scope]) ~= 'table' and overlay.block[scope] == overlay.keep[scope] then
+      local msg = " (keep/block): can't simultaniously keep and block %s keymaps"
       error(altmode.name .. msg:format(scope),0)
     end
   end
 
   -- ======================================
-  -- Group shadow/keeps by scope
+  -- Group blocked/keeps by scope
+  --
   local _overlay = {}
   for _,scope in ipairs({"native", "global", "buffer"}) do
     _overlay[scope] = {
       default = overlay.default[scope],
-      shadow  = overlay.shadow[scope],
-      keep    = overlay.keep[scope],
+      blocked = overlay.block[scope],
+      kept    = overlay.keep[scope],
     }
   end
 
@@ -539,6 +540,7 @@ local add_altmode = function (name, altmode)
   parse_exit_keymap(altmode)          -- parse exit keymap
 
   altmode._name   = altmode.name
+
   altmode.name    = nil
   altmode.exit    = nil
   altmode.help    = nil
@@ -550,7 +552,8 @@ end
 -- ===============================================
 -- module function
 --
-local add = function (self, name, altmode)
+local add = function (self, name, config)
+  local altmode = vim.deepcopy(config)
   local ok,error_msg = pcall(add_altmode, name, altmode)
 
   if not ok then
