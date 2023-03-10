@@ -288,12 +288,12 @@ local init_alt_state = function(self, name, buffer)
   local alt_state = {}
 
   alt_state.buffer  = buffer
-  alt_state.name    = altmode._name
+  alt_state.name    = altmode._name       -- OK
   alt_state.mode    = altmode._mode       -- OK
   alt_state.timeout = altmode._timeout    -- OK
   alt_state.keymaps = altmode._keymaps    -- OK
   alt_state.overlay = altmode._overlay    -- OK
-  alt_state.help    = altmode._help
+  alt_state.help    = altmode._help       -- OK
   alt_state.status  = altmode._status     -- OK
 
   self._states[buffer] = self._states[buffer] or {}
@@ -408,16 +408,6 @@ local get_keymap_actions = function (alt_state)
   for _,lhs in ipairs(replicate) do
     blocked[lhs].action = 'replicate'
   end
-
-  -- print('Natives('   .. tostring(#natives)     .. "): " .. vim.inspect(natives))
-  -- print('Blocked ('  .. tostring(#blocked_keys) .. "): " .. vim.inspect(blocked_keys))
-  -- print('Combos ('   .. tostring(#lhs_combos)  .. "): " .. vim.inspect(lhs_combos))
-  -- print('Critical (' .. tostring(#replicate)  .. "): " .. vim.inspect(replicate))
-  --- print("Blocked: " .. vim.inspect(blocked))
-
-  -- print('Combos (' .. tostring(#combos) .. "): " .. vim.inspect(combos))
-  -- print('Combos (' .. tostring(#combos) .. "): " .. vim.inspect(combos))
-
 
   -- ========================================
   -- sort and add alternative keymaps ( these
