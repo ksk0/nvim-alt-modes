@@ -9,14 +9,6 @@ local native_modes = {
   n = 'normal'
 }
 
-local default_options = {
-    noremap = true,
-    nowait  = false,
-    silent  = true,
-    expr    = false,
-}
-
-
 local replica_options = {
     noremap = true,
     nowait  = true,
@@ -24,7 +16,7 @@ local replica_options = {
     expr    = false,
 }
 
-local shadow_options = {
+local blocked_options = {
     noremap = true,
     nowait  = false,
     silent  = true,
@@ -122,13 +114,13 @@ end
 
 
 -- =====================================================
--- Collect keymaps by future state (shadw/keep)
+-- Collect keymaps by future state (blocked/kept)
 --
 local collect_overlay = function(current_keymaps, overlay_keymaps)
   -- each active keymap (buffer/global/native) has defined
   -- "future state" in alternative mode. This state can be:
   --
-  --   1) shadowed (ie, existing kmap will be made inactive)
+  --   1) blocked  (ie, existing kmap will be made inactive)
   --   2) kept     (ie, existing kmap will be kept active)
   --
   -- Future state is given as option in alternative mode
@@ -156,12 +148,12 @@ local collect_overlay = function(current_keymaps, overlay_keymaps)
   return overlay
 end
 
-local collect_shadows = function(active_keymaps, overlay)
-    return collect_overlay(active_keymaps, overlay.shadow)
+local collect_blocked = function(active_keymaps, overlay)
+    return collect_overlay(active_keymaps, overlay.blocked)
 end
 
-local collect_keeps = function(active_keymaps, overlay)
-    return collect_overlay(active_keymaps, overlay.keep)
+local collect_kept = function(active_keymaps, overlay)
+    return collect_overlay(active_keymaps, overlay.kept)
 end
 
 
@@ -197,25 +189,24 @@ local collect_kept_keymaps = function(alt_state)
     local overlay = alt_state.overlay[scope]
     local current = alt_state.current[scope]
 
-    local shadows = collect_shadows(current, overlay)
-    local keeps   = collect_keeps(current, overlay)
+    local blocked = collect_blocked (current, overlay)
+    local kept    = collect_kept(current, overlay)
+    local default = overlay.default
 
-    local default  = overlay.default
-
-    local kept = {}
+    local keep = {}
 
     for _,kmap in pairs(current._ordered) do
 
-      if keeps[kmap] then
-        kept[kmap] = true
-      elseif shadows[kmap] then
-        kept[kmap] = false
+      if kept[kmap] then
+        keep[kmap] = true
+      elseif blocked[kmap] then
+        keep[kmap] = false
       else
-        kept[kmap] = default
+        keep[kmap] = default
       end
     end
 
-    K[scope] = kept
+    K[scope] = keep
   end
 
   alt_state.kept = K
@@ -229,7 +220,7 @@ end
 --
 local show_keymap = function (lhs)
   -- do return end
-  vim.notify("Shaddowed: " .. lhs)
+  vim.notify("Blocked: " .. lhs)
 end
 
 local set_keymap = setmetatable({}, {
@@ -248,15 +239,15 @@ set_keymap.keep = function(buffer, kmap)
   set_keymap(buffer, kmap)
 end
 
-set_keymap.shadow = function(buffer, kmap)
-  local shadow_kmap = {
+set_keymap.block = function(buffer, kmap)
+  local blocked_kmap = {
     lhs = kmap.lhs,
     rhs = function() show_keymap(kmap.lhs) end,
     mode = kmap.mode,
-    options = shadow_options,
+    options = blocked_options,
   }
 
-  set_keymap(buffer, shadow_kmap)
+  set_keymap(buffer, blocked_kmap)
 end
 
 set_keymap.replicate = function(buffer, kmap)
@@ -328,25 +319,25 @@ local get_keymap_actions = function (alt_state)
   --   G -------- [S]       [S]         [S]         [K]         [S]       [K]
   --   N -------- [S]       [S]         [K]         [S]         [K]       [K]
   --   --------------------------------------------------------------------------------
-  --   ACTION:    set       shadow      replicate   clear       set       clear
+  --   ACTION:    set       blocked     replicate   clear       set       clear
   --
   --   a) collect keymaps
   --   b) collect altmaps
-  --   c) collect keeps
-  --   d) collect shadows
+  --   c) collect kept
+  --   d) collect blocked
   --
   --   e) foreach active keymap:
   --      *) if in altmaps set altmap
-  --      *) if in buffer keeps keep keymap
+  --      *) if in buffer keeps kept keymap
   --      *) if in global keeps delete buffer keymap
   --      *) if in native keeps replicate keymap
-  --      *) shadow altmap
+  --      *) blocked altmap
   --
 
   -- =================================
   -- collect keymaps
   --
-  local alt_keymaps     = collect_alt_keymaps(alt_state)
+  local altmode_keymaps = collect_alt_keymaps(alt_state)
   local current_keymaps = collect_current_keymaps(alt_state)
   local kept_keymaps    = collect_kept_keymaps(alt_state)
 
@@ -371,15 +362,15 @@ local get_keymap_actions = function (alt_state)
   -- keymaps.
   --
   local actions = {}
-  local shadows = {}
+  local blocked = {}
   local natives = {}
   local mode = alt_state.mode
 
   for _,lhs in ipairs(current_all) do
     -- check only kmaps which will not be activated
     --
-    if not alt_keymaps[lhs] then
-      -- keep buffer kmap
+    if not altmode_keymaps[lhs] then
+      -- kept buffer kmap
       --
       if kept_buffer[lhs] then
         table.insert(actions, {action = 'keep', kmap = current_buffer[lhs]})
@@ -399,40 +390,38 @@ local get_keymap_actions = function (alt_state)
           table.insert(natives, lhs)
         end
 
-      -- if not in "keeps" shadow this keymap
+      -- if not in "kept" block this keymap
       --
       else
-        local action = {action = 'shadow', kmap = {lhs = lhs, mode = mode}}
+        local action = {action = 'block', kmap = {lhs = lhs, mode = mode}}
 
         table.insert(actions, action)
-        shadows[lhs] = action
+        blocked[lhs] = action
       end
     end
   end
 
-  local shadow_keys = vim.tbl_keys(shadows)
-  local lhs_combos = vim.tbl_flatten(native.combos(natives))
-  lhs_combos = list.union(lhs_combos)
-  local replicate = list.intersection(shadow_keys, lhs_combos)
-
-  -- print('Natives('   .. tostring(#natives)     .. "): " .. vim.inspect(natives))
-  -- print('Shadows ('  .. tostring(#shadow_keys) .. "): " .. vim.inspect(shadow_keys))
-  -- print('Combos ('   .. tostring(#lhs_combos)  .. "): " .. vim.inspect(lhs_combos))
-  -- print('Critical (' .. tostring(#replicate)  .. "): " .. vim.inspect(replicate))
-  --- print("Shadows: " .. vim.inspect(shadows))
+  local blocked_keys = vim.tbl_keys(blocked)
+  local lhs_combos   = list.union(vim.tbl_flatten(native.combos(natives)))
+  local replicate    = list.intersection(blocked_keys, lhs_combos)
 
   for _,lhs in ipairs(replicate) do
-    shadows[lhs].action = 'replicate'
+    blocked[lhs].action = 'replicate'
   end
 
+  -- print('Natives('   .. tostring(#natives)     .. "): " .. vim.inspect(natives))
+  -- print('Blocked ('  .. tostring(#blocked_keys) .. "): " .. vim.inspect(blocked_keys))
+  -- print('Combos ('   .. tostring(#lhs_combos)  .. "): " .. vim.inspect(lhs_combos))
+  -- print('Critical (' .. tostring(#replicate)  .. "): " .. vim.inspect(replicate))
+  --- print("Blocked: " .. vim.inspect(blocked))
+
   -- print('Combos (' .. tostring(#combos) .. "): " .. vim.inspect(combos))
   -- print('Combos (' .. tostring(#combos) .. "): " .. vim.inspect(combos))
 
 
-  -- ====================================
-  -- sort and add alternative keymaps (
-  -- these have been ingnored in shadow/
-  -- keep)
+  -- ========================================
+  -- sort and add alternative keymaps ( these
+  -- have been ingnored in block/kept)
   --
   for _,kmap in ipairs(alt_state.keymaps) do
     table.insert(actions, {action = 'set', kmap = kmap})

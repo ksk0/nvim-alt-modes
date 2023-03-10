@@ -50,17 +50,16 @@ local test_keymaps = {
 --
 -- do return end
 local reset_test_mode = function()
-  test_mode.name = test_mode._name
   test_mode.keymaps = test_keymaps
-
-  test_mode._name = nil
-  test_mode._mode = nil
-  test_mode._help = nil
-  test_mode._keymaps = nil
-  test_mode._timeout = nil
-  test_mode._overlay = nil
-
   test_mode.overlay = {}
+
+  -- test_mode.name = test_mode._name
+  -- test_mode._name = nil
+  -- test_mode._mode = nil
+  -- test_mode._help = nil
+  -- test_mode._keymaps = nil
+  -- test_mode._timeout = nil
+  -- test_mode._overlay = nil
 end
 
 
@@ -91,7 +90,6 @@ describe("Config options:", function ()
 
   test_mode.foo = nil
 end)
-
 
 describe("Native mode:", function ()
   before_each(reset_test_mode)
@@ -165,94 +163,97 @@ describe("Overlay defaults:", function ()
     assert.not_equal(nil, msg:match('TEST %(overlay defaults%): Invalid scope value.*bar'))
   end)
 
-  it("Default scope value given ('shadow') [OK]", function ()
+  it("Default scope value given ('block') [OK]", function ()
     test_mode.overlay.default = nil
 
     assert.no.errors(function() M:add('test', test_mode) end)
-    assert.is_not_true(test_mode._overlay.buffer.default)
-    assert.is_not_true(test_mode._overlay.global.default)
-    assert.is_not_true(test_mode._overlay.native.default)
+
+    local tm = M._altmodes['test']
+
+    assert.is_not_true(tm._overlay.buffer.default)
+    assert.is_not_true(tm._overlay.global.default)
+    assert.is_not_true(tm._overlay.native.default)
   end)
 end)
 
 
 print()
-describe("Shadow:", function ()
+describe("Block:", function ()
   before_each(reset_test_mode)
 
-  it("Invalid shadow level given ('foo') [ERORR]", function ()
-    test_mode.overlay.shadow = 'foo'
+  it("Invalid block level given ('foo') [ERORR]", function ()
+    test_mode.overlay.block = 'foo'
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match('Invalid shadow level.*"foo"'))
+    assert.not_equal(nil, msg:match('Invalid block level.*"foo"'))
   end)
 
-  it("Invalid shadow content (1) - cant be number [ERORR]", function ()
-    test_mode.overlay.shadow = {buffer = 2}
+  it("Invalid block content (1) - cant be number [ERORR]", function ()
+    test_mode.overlay.block = {buffer = 2}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match('shadow "buffer" should have value of: boolean, string'))
+    assert.not_equal(nil, msg:match('block "buffer" should have value of: boolean, string'))
   end)
 
-  it("Invalid shadow content (2) - empty list [ERORR]", function ()
-    test_mode.overlay.shadow = {buffer = {}}
+  it("Invalid block content (2) - empty list [ERORR]", function ()
+    test_mode.overlay.block = {buffer = {}}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match('shadow "buffer" should have value of: boolean, string'))
+    assert.not_equal(nil, msg:match('block "buffer" should have value of: boolean, string'))
   end)
 
-  it("Valid shadow content (1) - boolean [OK]", function ()
-    test_mode.overlay.shadow = {buffer = true}
+  it("Valid block content (1) - boolean [OK]", function ()
+    test_mode.overlay.block = {buffer = true}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  it("Valid shadow content (2) - string [OK]", function ()
-    test_mode.overlay.shadow = {buffer = "<C-X>"}
+  it("Valid block content (2) - string [OK]", function ()
+    test_mode.overlay.block = {buffer = "<C-X>"}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  it("Valid shadow content (3) - list [OK]", function ()
-    test_mode.overlay.shadow = {buffer = {"X", "Y"}}
+  it("Valid block content (3) - list [OK]", function ()
+    test_mode.overlay.block = {buffer = {"X", "Y"}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  it("Valid shadow content (4) - nested list [OK]", function ()
-    test_mode.overlay.shadow = {buffer = {"X", "Y", {"a", "b"}}}
+  it("Valid block content (4) - nested list [OK]", function ()
+    test_mode.overlay.block = {buffer = {"X", "Y", {"a", "b"}}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  it("Valid shadow content (5) - nested list [OK]", function ()
-    test_mode.overlay.shadow = {buffer = {"X", "Y", {jedab = "a", pet = "b"}}}
+  it("Valid block content (5) - nested list [OK]", function ()
+    test_mode.overlay.block = {buffer = {"X", "Y", {jedab = "a", pet = "b"}}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  it("Valid shadow content (6) - nested list [OK]", function ()
-    test_mode.overlay.shadow = {buffer = {"X", "Y", something = {jedab = "a", pet = "b"}}}
+  it("Valid block content (6) - nested list [OK]", function ()
+    test_mode.overlay.block = {buffer = {"X", "Y", something = {jedab = "a", pet = "b"}}}
 
     assert.no.errors(function() M:add('test', test_mode) end)
     -- print (vim.inspect(M:get('test')))
   end)
 
-  it("Valid shadow content (7) - native.normal [OK]", function ()
-    test_mode.overlay.shadow = {native = maps.normal}
+  it("Valid block content (7) - native.normal [OK]", function ()
+    test_mode.overlay.block = {native = maps.normal}
 
     assert.no.errors(function() M:add('test', test_mode) end)
   end)
 
-  it("Valid shadow content (8) - multiple native [OK]", function ()
+  it("Valid block content (8) - multiple native [OK]", function ()
     test_mode.overlay = {
-      shadow = {
+      block = {
         native = {
           maps.normal.tabs,
           maps.normal.windows,
@@ -271,63 +272,63 @@ describe("Keep:", function ()
   before_each(reset_test_mode)
   local overlay
 
-  it("Conflicting shadow & keep for buffer (true, true) [ERORR]", function ()
+  it("Conflicting block & keep for buffer (true, true) [ERORR]", function ()
     test_mode.overlay = {
-      shadow = {buffer = true},
+      block = {buffer = true},
       keep   = {buffer = true},
     }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match("can't simultaniously keep and shadow buffer keymaps"))
+    assert.not_equal(nil, msg:match("can't simultaniously keep and block buffer keymaps"))
   end)
 
-  it("Conflicting shadow & keep for global (true, true) [ERORR]", function ()
+  it("Conflicting block & keep for global (true, true) [ERORR]", function ()
     test_mode.overlay = {
-      shadow = {global = true},
+      block = {global = true},
       keep   = {global = true},
     }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match("can't simultaniously keep and shadow global keymaps"))
+    assert.not_equal(nil, msg:match("can't simultaniously keep and block global keymaps"))
   end)
 
-  it("Conflicting shadow & keep for native (true, true) [ERORR]", function ()
+  it("Conflicting block & keep for native (true, true) [ERORR]", function ()
     test_mode.overlay = {
-      shadow = {native = true},
+      block = {native = true},
       keep   = {native = true},
     }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match("can't simultaniously keep and shadow native keymaps"))
+    assert.not_equal(nil, msg:match("can't simultaniously keep and block native keymaps"))
   end)
 
-  it("Conflicting shadow & keep for native (false, nil) [ERORR]", function ()
+  it("Conflicting block & keep for native (false, nil) [ERORR]", function ()
     test_mode.overlay = {
-      shadow = {native = false},
+      block = {native = false},
     }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match("can't simultaniously keep and shadow native keymaps"))
+    assert.not_equal(nil, msg:match("can't simultaniously keep and block native keymaps"))
   end)
 
-  it("Conflicting shadow & keep for native (true, nil) [ERORR]", function ()
+  it("Conflicting block & keep for native (true, nil) [ERORR]", function ()
     test_mode.overlay = {
       default = {native = 'keep'},
-      shadow  = {native = true},
+      block = {native = true},
     }
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match("can't simultaniously keep and shadow native keymaps"))
+    assert.not_equal(nil, msg:match("can't simultaniously keep and block native keymaps"))
   end)
 end)
 

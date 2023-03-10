@@ -275,9 +275,8 @@ local follower_test = function ()
 end
 
 local run_test = function ()
-  follower_test()
-  do return end
-
+  -- follower_test()
+  -- do return end
   -- combo_test()
   -- do return end
 
@@ -303,9 +302,10 @@ local run_test = function ()
   -- help_2:show()
 
   M:add('testing', modes.testing)
+  -- print(vim.inspect(M._altmodes['testing']))
 
   -- print(vim.inspect(M._altmodes['testing']))
-  LUA_TESTING_ME = true
+  -- LUA_TESTING_ME = true
 
   M:enter('testing')
 end
