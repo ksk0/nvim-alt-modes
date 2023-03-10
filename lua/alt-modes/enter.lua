@@ -216,99 +216,8 @@ end
 
 
 -- =====================================================
--- set alternative buffer keymaps
+-- keymap actions
 --
-local show_keymap = function (lhs)
-  -- do return end
-  vim.notify("Blocked: " .. lhs)
-end
-
-local set_keymap = setmetatable({}, {
-  __call = function (_,buffer, kmap)
-    kmap.options.buffer = buffer
-    keymap_set(kmap.mode, kmap.lhs, kmap.rhs, kmap.options)
-  end
-})
-
-set_keymap.set = function(buffer, kmap)
-  -- print('Set: ' .. kmap.lhs .. " action: " .. tostring(kmap.rhs))
-  set_keymap(buffer, kmap)
-end
-
-set_keymap.keep = function(buffer, kmap)
-  set_keymap(buffer, kmap)
-end
-
-set_keymap.block = function(buffer, kmap)
-  local blocked_kmap = {
-    lhs = kmap.lhs,
-    rhs = function() show_keymap(kmap.lhs) end,
-    mode = kmap.mode,
-    options = blocked_options,
-  }
-
-  set_keymap(buffer, blocked_kmap)
-end
-
-set_keymap.replicate = function(buffer, kmap)
-  local replica_kmap = {
-    lhs = kmap.lhs,
-    rhs = kmap.lhs,
-    mode = kmap.mode,
-    options = replica_options,
-  }
-
-  -- print("Replicating: "  .. vim.inspect(replica_kmap))
-
-  set_keymap(buffer, replica_kmap)
-end
-
-set_keymap.native = function(_,_)
-  -- print("Pass: " .. vim.inspect(kmap))
-end
-
-set_keymap.pass = function(_,_)
-  -- print("Pass: " .. vim.inspect(kmap))
-end
-
-
--- =====================================================
--- MAIN functions
---
-local init_alt_state = function(self, name, buffer)
-  local altmode = self._altmodes[name]
-
-  if not altmode then
-    local msg = string.format("(entering alternative mode): Alt mode '%s' does not exist!", name)
-    error(msg,3)
-  end
-
-  buffer = buffer or api.nvim_get_current_buf()
-
-  local alt_state = {}
-
-  alt_state.buffer  = buffer
-  alt_state.name    = altmode._name       -- OK
-  alt_state.mode    = altmode._mode       -- OK
-  alt_state.timeout = altmode._timeout    -- OK
-  alt_state.keymaps = altmode._keymaps    -- OK
-  alt_state.overlay = altmode._overlay    -- OK
-  alt_state.help    = altmode._help       -- OK
-  alt_state.status  = altmode._status     -- OK
-
-  self._states[buffer] = self._states[buffer] or {}
-  table.insert(self._states[buffer], alt_state)
-
-  return alt_state
-end
-
-local get_keymap_snapshot = function(alt_state)
-  alt_state.snapshot = vim.tbl_filter(
-    valid_keymap,
-    vim.api.nvim_buf_get_keymap(alt_state.buffer, alt_state.mode)
-  )
-end
-
 local get_keymap_actions = function (alt_state)
   -- =====================================================
   --
@@ -420,20 +329,116 @@ local get_keymap_actions = function (alt_state)
   alt_state.actions = actions
 end
 
-local clear_buffer_keymaps = function(alt_state)
 
+-- =====================================================
+-- set alternative buffer keymaps
+--
+local show_keymap = function (lhs)
+  -- do return end
+  vim.notify("Blocked: " .. lhs)
+end
+
+local set_keymap = setmetatable({}, {
+  __call = function (_,buffer, kmap)
+    kmap.options.buffer = buffer
+    keymap_set(kmap.mode, kmap.lhs, kmap.rhs, kmap.options)
+  end
+})
+
+set_keymap.set = function(buffer, kmap)
+  -- print('Set: ' .. kmap.lhs .. " action: " .. tostring(kmap.rhs))
+  set_keymap(buffer, kmap)
+end
+
+set_keymap.keep = function(buffer, kmap)
+  set_keymap(buffer, kmap)
+end
+
+set_keymap.block = function(buffer, kmap)
+  local blocked_kmap = {
+    lhs = kmap.lhs,
+    rhs = function() show_keymap(kmap.lhs) end,
+    mode = kmap.mode,
+    options = blocked_options,
+  }
+
+  set_keymap(buffer, blocked_kmap)
+end
+
+set_keymap.replicate = function(buffer, kmap)
+  local replica_kmap = {
+    lhs = kmap.lhs,
+    rhs = kmap.lhs,
+    mode = kmap.mode,
+    options = replica_options,
+  }
+
+  -- print("Replicating: "  .. vim.inspect(replica_kmap))
+
+  set_keymap(buffer, replica_kmap)
+end
+
+set_keymap.native = function(_,_)
+  -- print("Pass: " .. vim.inspect(kmap))
+end
+
+set_keymap.pass = function(_,_)
+  -- print("Pass: " .. vim.inspect(kmap))
+end
+
+local clear_buffer_keymaps = function(alt_state)
   for _,kmap in ipairs(alt_state.snapshot) do
     local _,_ pcall(keymap_del, kmap.mode, kmap.lhs, {buffer = kmap.buffer})
   end
 end
 
 local set_buffer_keymaps = function(alt_state)
+  clear_buffer_keymaps(alt_state)
+
   local buffer = alt_state.buffer
 
   for _,action in ipairs(alt_state.actions) do
     -- print(action.action, action.kmap.lhs)
     set_keymap[action.action](buffer, action.kmap)
   end
+end
+
+
+-- =====================================================
+-- MAIN functions
+--
+local init_alt_state = function(self, name, buffer)
+  local altmode = self._altmodes[name]
+
+  if not altmode then
+    local msg = string.format("(entering alternative mode): Alt mode '%s' does not exist!", name)
+    error(msg,3)
+  end
+
+  buffer = buffer or api.nvim_get_current_buf()
+
+  local alt_state = {}
+
+  alt_state.buffer  = buffer
+  alt_state.name    = altmode._name       -- OK
+  alt_state.mode    = altmode._mode       -- OK
+  alt_state.timeout = altmode._timeout    -- OK
+  alt_state.keymaps = altmode._keymaps    -- OK
+  alt_state.overlay = altmode._overlay    -- OK
+  alt_state.help    = altmode._help       -- OK
+  alt_state.status  = altmode._status     -- OK
+
+  self._states[buffer] = self._states[buffer] or {}
+  table.insert(self._states[buffer], alt_state)
+
+  return alt_state
+end
+
+local get_keymap_snapshot = function(alt_state)
+  alt_state.snapshot = vim.tbl_filter(
+    valid_keymap,
+    vim.api.nvim_buf_get_keymap(alt_state.buffer, alt_state.mode)
+  )
 end
 
 local set_timeout = function(alt_state)
@@ -454,7 +459,6 @@ local enter = function (self, name, buffer)
 
   get_keymap_snapshot(alt_state)
   get_keymap_actions(alt_state)
-  clear_buffer_keymaps(alt_state)
   set_buffer_keymaps(alt_state)
   set_timeout(alt_state)
 
