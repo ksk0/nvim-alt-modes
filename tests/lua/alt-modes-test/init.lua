@@ -274,9 +274,72 @@ local follower_test = function ()
   end
 end
 
+local popup_test = function ()
+  local popup = require('popup')
+
+  local popup_config = {
+    line = 25,
+    col  = 25,
+    minwidth = 20,
+    border = {},
+    -- borderchars = {"A", "B", "C", "D", "X","Y","Z","W"},
+  }
+
+  local popup_content = {"First row", "Second row", "Third row"}
+
+  if POPUP_WINDOW then
+    vim.api.nvim_win_close(table.remove(vim.api.nvim_list_wins()), true)
+    POPUP_WINDOW = nil
+    return
+  end
+
+  popup.create(popup_content, popup_config)
+  POPUP_WINDOW = true
+
+
+  -- local ok, win = pcall(popup.create, popup_content, popup_config)
+
+  -- vim.fn.input("Press <ENTER> to close popup window: ")
+  --
+  -- vim.api.nvim_win_close(poup_win, true)
+  -- print(vim.inspect(vim.api.nvim_list_wins()))
+end
+
+local menu_test = function ()
+  local menu = require('alt-modes.core.menu')
+
+  menu(
+    function(selection)
+      vim.notify('Selected: ' .. vim.inspect(selection))
+    end,
+
+    {"Line one", "Line two", "Line three", "Line four", "Line five", "Line six", "Some extra line", "Some extra line two"},
+    4
+  )
+end
+
+local loop_test = function ()
+  local timer = vim.loop.new_timer()
+  local i = 0
+  -- Waits 1000ms, then repeats every 750ms until timer:close().
+  timer:start(1000, 750, function()
+    print('timer invoked! i='..tostring(i))
+    if i > 4 then
+      timer:close()  -- Always close handles to avoid leaks.
+    end
+    i = i + 1
+  end)
+  print('sleeping');
+
+end
+
 local run_test = function ()
-  -- follower_test()
+  -- menu_test()
+  -- -- loop_test()
+  -- print('Out of loop test')
   -- do return end
+
+  -- follower_test()
   -- combo_test()
   -- do return end
 
@@ -286,6 +349,8 @@ local run_test = function ()
   -- arg_test("jedan", "dva", {"tri", "cetiri"})
   -- nmap_test()
   -- do return end
+
+  print('We are here')
 
   reload('alt-modes-test.modes')
 
@@ -301,7 +366,7 @@ local run_test = function ()
   -- print(vim.inspect(help))
   -- help_2:show()
 
-  M:add('testing', modes.testing)
+  M:add('testing', modes.testing_buffer)
   -- print(vim.inspect(M._altmodes['testing']))
 
   -- print(vim.inspect(M._altmodes['testing']))
@@ -309,5 +374,7 @@ local run_test = function ()
 
   M:enter('testing')
 end
+
+-- print(' Running testing session')
 
 return run_test

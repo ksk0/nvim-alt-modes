@@ -174,7 +174,7 @@ local parse_global = function (altmode)
     return
   end
 
-  if type(altmode._global) ~= "number" then
+  if type(altmode._global) ~= "boolean" then
     error(altmode.name .. " (global): global option must be boolean!",0)
   end
 end
@@ -197,7 +197,12 @@ local parse_status = function (altmode)
   altmode.status  = nil
 
   if altmode._status == nil then
-    local status = altmode.name
+    local status
+
+    if altmode.name ~= "" then
+      status = altmode.name
+    end
+
     altmode._status = function() return status end
     return
   end
@@ -358,6 +363,8 @@ local parse_keymap_options = function (altmode)
 end
 
 local parse_rhs = function(rhs)
+  do return rhs end
+
   if type(rhs) ~= 'string' then
     return rhs
   end
@@ -391,8 +398,20 @@ local function parse_keymap(altmode, keymap)
     error(altmode.name .. ' (keymaps definition): "lhs" value must be given!', 0)
   end
 
-  if keymap.rhs == nil then
-    error(altmode.name .. ' (keymaps definition): "rhs" value must be given!', 0)
+  if keymap.rhs == nil and keymap.fhs == nil then
+    error(altmode.name .. ' (keymaps definition): "rhs" or "fhs" must be given!', 0)
+  end
+
+  if keymap.rhs ~= nil and keymap.fhs ~= nil then
+    error(altmode.name .. ' (keymaps definition): eather "rhs" or "fhs" must be given not both!', 0)
+  end
+
+  if keymap.rhs ~= nil and keymap.fhs ~= nil then
+    error(altmode.name .. ' (keymaps definition): eather "rhs" or "fhs" must be given not both!', 0)
+  end
+
+  if keymap.fhs ~= nil and type(keymap.fhs) ~= 'function' then
+    error(altmode.name .. ' (keymaps definition): "fhs" must be function!', 0)
   end
 
   local options_ok, options = check_options(keymap.options)
@@ -443,7 +462,7 @@ local function parse_keymap(altmode, keymap)
 
   keymap.options = options
 
-  local invalids = list.sub(vim.tbl_keys(keymap), {"mode", "lhs", "rhs", "desc", "options"})
+  local invalids = list.sub(vim.tbl_keys(keymap), {"mode", "lhs", "rhs", "fhs", "desc", "options"})
 
   if not vim.tbl_isempty(invalids) then
     local msg = '"' .. fn.join(invalids, '", "') .. '"'

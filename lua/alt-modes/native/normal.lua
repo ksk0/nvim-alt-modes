@@ -3,6 +3,7 @@ local M = {}
 
 M.misc     = {}
 M.mode     = {}
+M.mouse    = {}
 M.tabs     = {}
 M.yank     = {}
 M.spell    = {}
@@ -17,6 +18,7 @@ M.movement = {}
 
 local misc    = M.misc
 local mode    = M.mode
+local mouse   = M.mouse
 local move    = M.movement
 local folding = M.folding
 local spell   = M.spell
@@ -260,6 +262,26 @@ mode.search = {
   '?',                 -- 1  search backward for {pattern} of last search
 }
 
+
+-- ==============================================
+-- Mouse / clicking commands
+--
+mouse.double = {
+  '<2-LeftMouse>',         --    left double click
+  '<2-RightMouse>',        --    left double click
+  '<2-MiddleMouse>',       --    left double click
+}
+
+mouse.wheel = {
+  '<ScrollWheelDown>',
+  '<S-ScrollWheelDow>',
+  '<ScrollWheelUp>',
+  '<S-ScrollWheelUp>',
+  '<ScrollWheelLeft>',
+  '<S-ScrollWheelLeft>',
+  '<ScrollWheelRight>',
+  '<S-ScrollWheelRight>',
+}
 
 -- ==============================================
 -- commands which MODIFY buffer

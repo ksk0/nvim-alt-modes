@@ -2,12 +2,156 @@ local normal = require("alt-modes.native.normal")
 
 local modes = {}
 
+local buffer_counter = function(buffer)
+  local counter = 0
+
+  return function()
+    counter = counter + 1
+    vim.notify('Buffer:' .. tostring(buffer) .. " Counter:" .. tostring(counter))
+  end
+end
+
 local exit_testing_mode = function()
   require('alt-modes'):exit()
   LUA_TESTING_ME = nil
 end
 
-modes.testing = {
+modes.testing_global = {
+  name = 'TESTING',
+  mode = 'n',
+  exit = '',
+  help = 'h',
+  global = true,
+
+  timeout = 500,
+
+  overlay = {
+    default = {
+      buffer = false
+    },
+
+    keep = {
+      buffer = {"lq", "ls", "lr", "lk", "lj"},
+      global = {"zp"},
+
+      native = {
+        { ":", "j", "k"},
+        normal.mode.ex,
+        normal.movement,
+        normal.scroll,
+        normal.folding,
+      }
+    },
+  },
+
+  options = {
+    -- noremap = true,
+    -- nowait  = true,
+    -- silent  = false,
+    -- expr    = false,
+  },
+
+  keymaps = {
+    {
+      {
+        lhs  = '<C-X>',
+        rhs  = '',
+        desc = '<C-X>AB',
+      },
+      {
+        lhs  = 'AB<C-X>',
+        rhs  = '',
+        desc = 'AB<C-X>',
+      },
+      {
+        lhs  = 'AB<C-X>CD',
+        rhs  = '',
+        desc = 'AB<C-X>CD',
+      },
+      {
+        lhs  = 'AB<C-X>CD<C-Z>',
+        rhs  = '',
+        desc = 'AB<C-X>CD<C-Z>',
+      },
+      {
+        lhs  = 'AB<C-X>CD<C-Z>EF',
+        rhs  = '',
+        desc = 'AB<C-X>CD<C-Z>EF',
+      },
+      {
+        lhs  = 'AB<C-X><C-Z>',
+        rhs  = '',
+        desc = 'AB<C-X><C-Z>',
+      },
+      {
+        lhs  = 'AB<C-X><C-Z>EF',
+        rhs  = '',
+        desc = 'AB<C-X><C-Z>EF',
+      },
+      {
+        lhs  = 'ABCDEFGHIJKLMNOPQR',
+        rhs  = '',
+        desc = 'ABCDEFGHIJKLMNOPQR',
+      },
+    },
+    {
+      {
+        lhs  = 'g?',
+        rhs  = ':lua require("alt-modes"):help()<CR>',
+        desc = 'Show help',
+      },
+      {
+        lhs  = 'h',
+        rhs  = ':lua require("alt-modes"):help()<CR>',
+        desc = 'Show help',
+      },
+      {
+        lhs  = '<esc>',
+        rhs  = exit_testing_mode,
+        desc = 'Exit testing mode',
+      },
+
+    },
+    {
+      {
+        lhs  = 'o',
+        rhs  = ':nmap <buffer><CR>',
+        -- desc = 'Notify that "o" key has been pressed',
+      },
+      {
+        lhs  = 'g',
+        rhs  = 'lua vim.notify("Key \\"g\\" was pressed")',
+        desc = 'Notify that "Z" key has been pressed',
+      },
+    },
+    {
+      lhs  = 'J',
+      rhs  = 'lua vim.notify("Key \\"J\\" was pressed")',
+      desc = 'Notify that "J" key has been pressed',
+    },
+    {
+      lhs  = 'L',
+      rhs  = ':lua vim.notify("Key \\"L\\" was pressed")',
+      desc = 'Notify that "L" key has been pressed',
+    },
+    {
+      {
+        lhs  = 'P',
+        rhs  = '<cmd>lua vim.notify("Key \\"P\\" was pressed")<CR>',
+        desc = 'Notify that "P" key has been pressed',
+      },
+    },
+
+    {
+      lhs  = 'O',
+      rhs  = 'lua do print "AAAA" end',
+      desc = 'some expression test',
+      -- expr = true,
+    },
+  },
+}
+
+modes.testing_buffer = {
   name = 'TESTING',
   mode = 'n',
   exit = '',
@@ -116,7 +260,7 @@ modes.testing = {
     },
     {
       lhs  = 'L',
-      rhs  = ':lua vim.notify("Key \\"L\\" was pressed")',
+      fhs  = buffer_counter,
       desc = 'Notify that "L" key has been pressed',
     },
     {

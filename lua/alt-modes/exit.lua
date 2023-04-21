@@ -78,7 +78,7 @@ local exit = function(self, buffer)
     self._states[buffer] = nil
   end
 
-  vim.notify('Exited from alt-mode "' .. name .. '"')
+  -- vim.notify('Exited from alt-mode "' .. name .. '"')
 end
 
 return exit

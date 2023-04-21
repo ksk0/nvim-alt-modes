@@ -1,6 +1,8 @@
 local api = vim.api
 local keymap_set = vim.keymap.set
 local keymap_del = vim.keymap.del
+local filter = vim.tbl_filter
+local map = vim.tbl_map
 
 local list = require("alt-modes.core.list")
 local native = require("alt-modes.native")
@@ -60,7 +62,7 @@ collect_active_keymaps.buffer = function(alt_state)
   local ordered = {}
 
   for _,keymap in ipairs(
-    vim.tbl_filter(
+    filter(
       valid_keymap,
       vim.api.nvim_buf_get_keymap(alt_state.buffer, alt_state.mode)
     )) do
@@ -79,7 +81,7 @@ collect_active_keymaps.global = function (alt_state)
   local ordered = {}
 
   for _,keymap in ipairs(
-    vim.tbl_filter(
+    filter(
       valid_keymap,
       vim.api.nvim_get_keymap(alt_state.mode)
     ))do
@@ -165,7 +167,7 @@ local collect_altmode_keymaps = function(alt_state)
   local keymaps = {}
 
   for _,keymap in ipairs(
-    vim.tbl_filter(
+    filter(
       function(km) return km.mode == mode end,
       alt_state.keymaps
     )
@@ -214,13 +216,43 @@ local collect_kept_keymaps = function(alt_state)
   return K
 end
 
-local collect_keymaps = function(alt_state)
-end
-
 
 -- =====================================================
 -- keymap actions
 --
+local get_global_actions = function (alt_state)
+  -- =====================================================
+  --  
+  --            (1)     (2)     (4)     (3)     (4)     (5)     (6)     (7)     (8) 
+  --   -----------------------------------------------------------------------------
+  --   A ----   [*]     [*]     [ ]     [ ]     [ ]     [ ]     [ ]     [ ]     [ ] 
+  --   B ----   [ ]     [*]     [K]     [B]     [ ]     [B]     [ ]     [B]     [ ] 
+  --   G ----   [*]     [*]     [?]     [K]     [K]     [B]     [B]     [ ]     [ ] 
+  --   N ----   [*]     [*]     [?]     [?]     [?]     [K]     [K]     [K]     [K] 
+  --   -----------------------------------------------------------------------------
+  --   ACTION:          del B   none    del B   none    del B           del B   none
+  --            set G   set G                           del G   del G               
+  --
+  --             kmap        future 
+  --   Symbol    present     state 
+  --   ----------------------------
+  --     [*]       yes       any
+  --     [K]       yes       keep
+  --     [B]       yes       block
+  --     [?]       unknown 
+  --     [ ]       no         
+  --   ----------------------------
+
+  -- =================================
+  -- collect keymaps
+  --
+  collect_altmode_keymaps(alt_state)
+  collect_active_keymaps(alt_state)
+  collect_kept_keymaps(alt_state)
+
+  
+end
+
 local get_buffer_actions = function (alt_state)
   -- =====================================================
   --
@@ -327,39 +359,51 @@ local get_buffer_actions = function (alt_state)
     table.insert(actions, {action = 'set', kmap = kmap})
   end
 
-  alt_state.actions = actions
+  return actions
 end
 
 local get_keymap_actions = function (alt_state)
-  get_buffer_actions(alt_state)
+  if alt_state.global then
+    alt_state.actions = get_global_actions(alt_state)
+  else
+    alt_state.actions = get_buffer_actions(alt_state)
+  end
 end
 
 
 -- =====================================================
--- set alternative buffer keymaps
+-- set alternative keymaps (buffer)
 --
 local show_keymap = function (lhs)
   -- do return end
-  vim.notify("Blocked: " .. lhs)
+  -- vim.notify("Blocked: " .. lhs)
 end
 
-local set_keymap = setmetatable({}, {
+local buffer_altmap = setmetatable({}, {
   __call = function (_,buffer, kmap)
     kmap.options.buffer = buffer
     keymap_set(kmap.mode, kmap.lhs, kmap.rhs, kmap.options)
   end
 })
 
-set_keymap.set = function(buffer, kmap)
+buffer_altmap.set = function(buffer, kmap)
   -- print('Set: ' .. kmap.lhs .. " action: " .. tostring(kmap.rhs))
-  set_keymap(buffer, kmap)
+  local alt_kmap = {
+    lhs = kmap.lhs,
+    rhs = kmap.rhs or kmap.fhs(buffer),
+    mode = kmap.mode,
+    options = kmap.options,
+  }
+
+
+  buffer_altmap(buffer, alt_kmap)
 end
 
-set_keymap.keep = function(buffer, kmap)
-  set_keymap(buffer, kmap)
+buffer_altmap.keep = function(buffer, kmap)
+  buffer_altmap(buffer, kmap)
 end
 
-set_keymap.block = function(buffer, kmap)
+buffer_altmap.block = function(buffer, kmap)
   local blocked_kmap = {
     lhs = kmap.lhs,
     rhs = function() show_keymap(kmap.lhs) end,
@@ -367,10 +411,10 @@ set_keymap.block = function(buffer, kmap)
     options = blocked_options,
   }
 
-  set_keymap(buffer, blocked_kmap)
+  buffer_altmap(buffer, blocked_kmap)
 end
 
-set_keymap.replicate = function(buffer, kmap)
+buffer_altmap.replicate = function(buffer, kmap)
   local replica_kmap = {
     lhs = kmap.lhs,
     rhs = kmap.lhs,
@@ -380,16 +424,17 @@ set_keymap.replicate = function(buffer, kmap)
 
   -- print("Replicating: "  .. vim.inspect(replica_kmap))
 
-  set_keymap(buffer, replica_kmap)
+  buffer_altmap(buffer, replica_kmap)
 end
 
-set_keymap.native = function(_,_)
+buffer_altmap.native = function(_,_)
   -- print("Pass: " .. vim.inspect(kmap))
 end
 
-set_keymap.pass = function(_,_)
+buffer_altmap.pass = function(_,_)
   -- print("Pass: " .. vim.inspect(kmap))
 end
+
 
 local clear_buffer_keymaps = function(alt_state)
   for _,kmap in ipairs(alt_state.snapshot) do
@@ -404,14 +449,56 @@ local set_buffer_keymaps = function(alt_state)
 
   for _,action in ipairs(alt_state.actions) do
     -- print(action.action, action.kmap.lhs)
-    set_keymap[action.action](buffer, action.kmap)
+    buffer_altmap[action.action](buffer, action.kmap)
   end
 end
 
 
 -- =====================================================
+-- set alternative keymaps (global)
+--
+local global_altmaps_buffer = function(alt_state)
+  local buffer_kmaps = map(
+    function (kmap)
+      return kmap.lhs
+    end,
+    alt_state.snapshot
+  )
+
+  print(vim.inspect(buffer_kmaps))
+
+  local kept_keymaps = vim.tbl_keys(alt_state.kept.buffer)
+
+  print(vim.inspect(kept_keymaps))
+
+  do return end
+
+
+
+  for _,kmap in ipairs(alt_state.snapshot) do
+    local _,_ pcall(keymap_del, kmap.mode, kmap.lhs, {buffer = kmap.buffer})
+  end
+
+end
+
+local global_altmaps_global = function(alt_state)
+end
+
+local set_global_keymaps = function(alt_state)
+  global_altmaps_buffer(alt_state)
+end
+
+-- =====================================================
 -- MAIN functions
 --
+local set_keymaps = function(alt_state)
+  if alt_state.global then
+    set_global_keymaps(alt_state)
+  else
+    set_buffer_keymaps(alt_state)
+  end
+end
+
 local init_alt_state = function(self, name, buffer)
   local altmode = self._altmodes[name]
 
@@ -428,6 +515,7 @@ local init_alt_state = function(self, name, buffer)
   alt_state.name    = altmode._name       -- OK
   alt_state.mode    = altmode._mode       -- OK
   alt_state.timeout = altmode._timeout    -- OK
+  alt_state.global  = altmode._global     -- OK
   alt_state.keymaps = altmode._keymaps    -- OK
   alt_state.overlay = altmode._overlay    -- OK
   alt_state.help    = altmode._help       -- OK
@@ -440,7 +528,7 @@ local init_alt_state = function(self, name, buffer)
 end
 
 local get_keymap_snapshot = function(alt_state)
-  alt_state.snapshot = vim.tbl_filter(
+  alt_state.snapshot = filter(
     valid_keymap,
     vim.api.nvim_buf_get_keymap(alt_state.buffer, alt_state.mode)
   )
@@ -464,14 +552,13 @@ local enter = function (self, name, buffer)
 
   get_keymap_snapshot(alt_state)
   get_keymap_actions(alt_state)
-  set_buffer_keymaps(alt_state)
-  set_timeout(alt_state)
-
+  set_keymaps(alt_state)
+  -- set_timeout(alt_state)
   alt_state.current = nil
   alt_state.actions = nil
   alt_state.kept    = nil
 
-  vim.notify("Entered mode: " .. name)
+  -- vim.notify("Entered mode: " .. name)
 end
 
 return enter

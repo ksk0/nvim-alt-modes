@@ -445,13 +445,22 @@ describe("Keymap item:", function ()
     assert.not_equal(nil, msg:match('keymaps definition.*"lhs" value must be given'))
   end)
 
-  it('"rhs" value must be given [ERORR]', function ()
+  it('"rhs" or "fhs" value must be given [ERORR]', function ()
     test_mode.keymaps = {lhs = 'K'}
 
     local ok, msg = pcall(M.add, M, 'test', test_mode)
 
     assert.is_not_true(ok)
-    assert.not_equal(nil, msg:match('keymaps definition.*"rhs" value must be given'))
+    assert.not_equal(nil, msg:match('keymaps definition.*"rhs" or "fhs" must be given'))
+  end)
+
+  it('"fhs" must be function [ERORR]', function ()
+    test_mode.keymaps = {lhs = 'K', fhs = 'foo'}
+
+    local ok, msg = pcall(M.add, M, 'test', test_mode)
+
+    assert.is_not_true(ok)
+    assert.not_equal(nil, msg:match('keymaps definition.*"fhs" must be function'))
   end)
 
   it("Invalid option ('foo') [ERORR]", function ()
